@@ -1,0 +1,10 @@
+"use client";
+import { useEffect, useState } from "react";
+import { FinTable, type FinColumn } from "@/components/finance/FinTable";
+import { MoneyText } from "@/components/finance/MoneyText";
+import { useFinApp } from "@/lib/finance/auth-context";
+import { accountBook } from "@/lib/finance/service";
+import type { SubjectSummaryRow } from "@/lib/finance/types";
+
+export default function SubjectSummaryPage() { const { currentAccountSet, currentPeriod } = useFinApp(); const [period, setPeriod] = useState(currentPeriod); const [rows, setRows] = useState<SubjectSummaryRow[]>([]); useEffect(() => { if (currentAccountSet) accountBook.subjectSummary(currentAccountSet.id, period.year, period.month).then(setRows); }, [currentAccountSet, period]); const columns: FinColumn<SubjectSummaryRow>[] = [{ key:"word", title:"凭证字", render:(row)=><b>{row.word}</b> },{ key:"count", title:"凭证张数", render:(row)=>row.voucherCount },{ key:"debit", title:"借方合计", className:"text-right", render:(row)=><MoneyText value={row.debitAmount}/> },{ key:"credit", title:"贷方合计", className:"text-right", render:(row)=><MoneyText value={row.creditAmount}/> }]; return <div className="space-y-5"><div><h1 className="text-2xl font-semibold">科目汇总表</h1><p className="mt-1 text-sm text-slate-500">按凭证字汇总本期凭证张数及借贷发生额</p></div><PeriodSelect period={period} currentYear={currentPeriod.year} onChange={setPeriod}/><FinTable columns={columns} data={rows}/></div>; }
+function PeriodSelect({period,currentYear,onChange}:{period:{year:number;month:number};currentYear:number;onChange:(value:{year:number;month:number})=>void}) { return <div className="flex gap-3 rounded-xl border bg-white p-4"><select value={period.year} onChange={(event)=>onChange({...period,year:Number(event.target.value)})} className="rounded border px-3">{Array.from({length:5},(_,index)=>currentYear-index).map((year)=><option key={year}>{year}年</option>)}</select><select value={period.month} onChange={(event)=>onChange({...period,month:Number(event.target.value)})} className="rounded border px-3">{Array.from({length:12},(_,index)=>index+1).map((month)=><option key={month} value={month}>第{month}期</option>)}</select></div>; }
