@@ -1,69 +1,9 @@
 "use client";
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-
-import { passwordReset } from "@/components/actions/password-reset-action";
-import { useActionState } from "react";
-import { SubmitButton } from "@/components/ui/submitButton";
 import Link from "next/link";
-import { FormError } from "@/components/ui/FormError";
+import { FormEvent, useState } from "react";
+import { auth } from "@/lib/finance/service";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
-export default function Page() {
-  const [state, dispatch] = useActionState(passwordReset, undefined);
+export default function PasswordRecoveryPage() { const [message, setMessage] = useState(""); async function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const data = new FormData(event.currentTarget); const password = String(data.get("password")); if (password !== data.get("repeatPassword")) { setMessage("两次输入的密码不一致"); return; } try { await auth.resetPassword(String(data.get("username")), password); setMessage("密码重置成功，请返回登录"); } catch (cause) { setMessage(cause instanceof Error ? cause.message : "重置失败"); } } return <main className="grid min-h-screen place-items-center bg-slate-100 p-6"><section className="w-full max-w-md rounded-2xl border bg-white p-8 shadow-xl"><h1 className="text-2xl font-semibold">找回密码</h1><p className="mb-7 mt-2 text-sm text-slate-500">验证身份并设置新的登录密码</p><form onSubmit={submit} className="space-y-4"><Input name="username" placeholder="账号或手机号" required/><div className="flex gap-2"><Input name="code" placeholder="验证码" required/><Button type="button" variant="outline">获取验证码</Button></div><Input name="password" type="password" placeholder="新密码" required/><Input name="repeatPassword" type="password" placeholder="确认新密码" required/>{message && <p className={`text-sm ${message.includes("成功") ? "text-emerald-600" : "text-red-600"}`}>{message}</p>}<Button className="w-full bg-sky-600">修改密码</Button><Link href="/login" className="block text-center text-sm text-sky-600">返回登录</Link></form></section></main>; }
 
-  return (
-    <div className="flex h-screen w-full items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-      <form action={dispatch}>
-        <Card className="w-full max-w-sm rounded-lg shadow-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-semibold text-gray-800 dark:text-white">
-              Password Recovery
-            </CardTitle>
-            <CardDescription className="text-sm text-gray-600 dark:text-gray-400">
-              Enter your email to receive instructions to reset your password.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-6 p-6">
-            <div className="grid gap-3">
-              <Label
-                htmlFor="email"
-                className="text-gray-700 dark:text-gray-300"
-              >
-                Email
-              </Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="m@example.com"
-                required
-                className="border-gray-300 dark:border-gray-600"
-              />
-            </div>
-            <SubmitButton text="Send" />
-            <FormError state={state} />
-            <div className="mt-2 text-sm text-center text-blue-500">
-              {state?.message && <p>{state.message}</p>}
-            </div>
-            <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
-              <Link
-                href="/login"
-                className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-500"
-              >
-                Back to login
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      </form>
-    </div>
-  );
-}

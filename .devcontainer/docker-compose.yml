@@ -1,4 +1,4 @@
-name: dty-app-dev
+name: dty-fis
 
 # 与 scripts/devcontainer-ensure-images.sh 保持一致；优先使用本机已有轻量镜像
 x-python-image: &python-image docker.m.daocloud.io/library/python:3.12-slim
@@ -12,7 +12,7 @@ services:
       dockerfile: Dockerfile
       args:
         PYTHON_IMAGE: docker.m.daocloud.io/library/python:3.12-slim
-    image: dty-app-devcontainer:latest
+    image: dty-fis-devcontainer:latest
     pull_policy: never
     init: true
     command: sleep infinity
@@ -30,7 +30,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: mydatabase
     ports:
-      - "${POSTGRES_PORT:-5442}:5432"
+      - "${POSTGRES_PORT:-8658}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -50,7 +50,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: testdatabase
     ports:
-      - "${POSTGRES_TEST_PORT:-5443}:5432"
+      - "${POSTGRES_TEST_PORT:-8659}:5432"
     networks:
       - dev
 
@@ -58,13 +58,13 @@ services:
     image: mailhog/mailhog
     pull_policy: if_not_present
     ports:
-      - "1025:1025"
-      - "8025:8025"
+      - "8660:1025"
+      - "8661:8025"
     networks:
       - dev
 
   backend:
-    image: dty-app-devcontainer:latest
+    image: dty-fis-devcontainer:latest
     pull_policy: never
     working_dir: /workspaces/nextjs-fastapi-template/apps/backend
     command: >
@@ -88,7 +88,7 @@ services:
       MAIL_STARTTLS: "False"
       MAIL_SSL_TLS: "False"
       USE_CREDENTIALS: "False"
-      FRONTEND_URL: http://localhost:${FRONTEND_PORT:-3010}
+      FRONTEND_URL: http://localhost:${FRONTEND_PORT:-3656}
       CORS_ORIGINS: '["*"]'
       ACCESS_SECRET_KEY: dev-access-secret-change-in-production
       RESET_PASSWORD_SECRET_KEY: dev-reset-secret-change-in-production
@@ -97,7 +97,7 @@ services:
       - ..:/workspaces/nextjs-fastapi-template:cached
       - backend-venv:/workspaces/nextjs-fastapi-template/apps/backend/.venv
     ports:
-      - "${BACKEND_PORT:-8010}:8000"
+      - "${BACKEND_PORT:-8656}:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -107,7 +107,7 @@ services:
       - dev
 
   oss:
-    image: dty-app-devcontainer:latest
+    image: dty-fis-devcontainer:latest
     pull_policy: never
     working_dir: /workspaces/nextjs-fastapi-template/apps/backend_oss_gateway
     command: >
@@ -123,14 +123,14 @@ services:
       DEFAULT_PROVIDER: local
       LOCAL_STORAGE_PATH: ./storage
       LOCAL_BUCKET: local-dev
-      LOCAL_PUBLIC_BASE_URL: http://localhost:${BACKEND_OSS_GATEWAY_PORT:-8020}
+      LOCAL_PUBLIC_BASE_URL: http://localhost:${BACKEND_OSS_GATEWAY_PORT:-8657}
       CORS_ORIGINS: '["*"]'
     volumes:
       - ..:/workspaces/nextjs-fastapi-template:cached
       - oss-venv:/workspaces/nextjs-fastapi-template/apps/backend_oss_gateway/.venv
       - oss-storage:/workspaces/nextjs-fastapi-template/apps/backend_oss_gateway/storage
     ports:
-      - "${BACKEND_OSS_GATEWAY_PORT:-8020}:8000"
+      - "${BACKEND_OSS_GATEWAY_PORT:-8657}:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -142,10 +142,10 @@ services:
     pull_policy: never
     working_dir: /workspaces/nextjs-fastapi-template/apps/frontend
     command: >
-      sh -lc "bun install --frozen-lockfile
-      && bun --bun run dev & bun watcher.js; wait"
+      sh -lc 'bun install --frozen-lockfile && if [ "$$NEXT_MODE" = "dev" ]; then NODE_ENV=development bun --bun run dev --port 3000; else NODE_ENV=production bun --bun run build && bun --bun run start -p 3000; fi'
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
+      NEXT_MODE: "${NEXT_MODE:-production}"
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
       API_BASE_URL: http://backend:8000
@@ -154,7 +154,7 @@ services:
       - ..:/workspaces/nextjs-fastapi-template:cached
       - frontend-node-modules:/workspaces/nextjs-fastapi-template/apps/frontend/node_modules
     ports:
-      - "${FRONTEND_PORT:-3010}:3000"
+      - "${FRONTEND_PORT:-3656}:3000"
     depends_on:
       - backend
     networks:

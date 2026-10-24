@@ -1,89 +1,15 @@
 "use client";
-
+import Image from "next/image";
 import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { useRouter } from "next/navigation";
+import { FormEvent, useState } from "react";
+import { Cloud, LockKeyhole, Smartphone, UserRound } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useFinApp } from "@/lib/finance/auth-context";
 
-import { login } from "@/components/actions/login-action";
-import { useActionState } from "react";
-import { SubmitButton } from "@/components/ui/submitButton";
-import { FieldError, FormError } from "@/components/ui/FormError";
-
-export default function Page() {
-  const [state, dispatch] = useActionState(login, undefined);
-  return (
-    <div className="flex h-screen w-full items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-      <form action={dispatch}>
-        <Card className="w-full max-w-sm rounded-lg shadow-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 md:min-w-[450px]">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-semibold text-gray-800 dark:text-white">
-              登录
-            </CardTitle>
-            <CardDescription className="text-sm text-gray-600 dark:text-gray-400">
-              输入您的邮箱地址以登录您的帐户。
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-6 p-6">
-            <div className="grid gap-3">
-              <Label
-                htmlFor="username"
-                className="text-gray-700 dark:text-gray-300"
-              >
-                用户名
-              </Label>
-              <Input
-                id="username"
-                name="username"
-                type="email"
-                placeholder="admin@dty.com"
-                required
-                className="border-gray-300 dark:border-gray-600"
-              />
-              <FieldError state={state} field="username" />
-            </div>
-            <div className="grid gap-3">
-              <Label
-                htmlFor="password"
-                className="text-gray-700 dark:text-gray-300"
-              >
-                密码
-              </Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="border-gray-300 dark:border-gray-600"
-              />
-              <FieldError state={state} field="password" />
-              <Link
-                href="/password-recovery"
-                className="ml-auto inline-block text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-500"
-              >
-                忘记密码？
-              </Link>
-            </div>
-            <SubmitButton text="登录" />
-            <FormError state={state} />
-            <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
-              没有帐户？{" "}
-              <Link
-                href="/register"
-                className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-500"
-              >
-                注册
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      </form>
-    </div>
-  );
+export default function LoginPage() {
+  const router = useRouter(); const { login } = useFinApp(); const [mode, setMode] = useState<"password" | "sms">("password"); const [loading, setLoading] = useState(false); const [error, setError] = useState("");
+  async function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const data = new FormData(event.currentTarget); setLoading(true); setError(""); try { const items = await login(String(data.get("username")), mode === "password" ? String(data.get("password")) : "123456"); router.replace(items.length === 1 ? "/dashboard" : "/select-account-set"); } catch (cause) { setError(cause instanceof Error ? cause.message : "登录失败"); } finally { setLoading(false); } }
+  return <main className="grid min-h-screen lg:grid-cols-2"><section className="relative hidden h-screen overflow-hidden bg-gradient-to-b from-[#dbeefd] to-[#d9f3e6] lg:flex lg:flex-col"><div className="relative z-10 flex items-center gap-3 px-14 pt-14 text-xl font-semibold text-slate-900"><Cloud className="text-sky-600"/>纷析云财税</div><div className="relative z-10 px-14 pt-10"><h1 className="text-4xl font-semibold leading-tight text-[#14315e] lg:text-5xl">让每个决策<br/>都有数据支撑</h1><p className="mt-6 max-w-md text-slate-600">专业、清晰、易用的云端财务工作台，覆盖凭证、账簿、报表和期末结账。</p></div><div className="flex min-h-0 flex-1 items-end justify-center pb-16"><Image src="/images/login-illustration.webp" alt="纷析云财务云端工作台插画" width={960} height={1080} priority className="h-auto max-h-full w-auto object-contain"/></div><p className="pointer-events-none absolute bottom-6 left-14 z-10 text-sm text-slate-500">纷析云 · 业财融合数字化平台</p></section><section className="grid place-items-center bg-slate-50 p-6"><div className="w-full max-w-md rounded-2xl border bg-white p-8 shadow-xl"><h2 className="text-2xl font-semibold">欢迎登录</h2><p className="mt-2 text-sm text-slate-500">使用演示账号 admin / 123456</p><div className="mt-7 grid grid-cols-2 border-b"><button onClick={() => setMode("password")} className={`pb-3 text-sm ${mode === "password" ? "border-b-2 border-sky-500 font-medium text-sky-600" : "text-slate-500"}`}>账号密码登录</button><button onClick={() => setMode("sms")} className={`pb-3 text-sm ${mode === "sms" ? "border-b-2 border-sky-500 font-medium text-sky-600" : "text-slate-500"}`}>短信验证码登录</button></div><form onSubmit={submit} className="mt-6 space-y-4"><div className="relative"><UserRound className="absolute left-3 top-2.5 text-slate-400" size={18}/><Input name="username" defaultValue="admin" placeholder="账号 / 手机号" className="h-11 pl-10" required/></div>{mode === "password" ? <div className="relative"><LockKeyhole className="absolute left-3 top-2.5 text-slate-400" size={18}/><Input name="password" defaultValue="123456" type="password" placeholder="密码" className="h-11 pl-10" required/></div> : <div className="flex gap-2"><div className="relative flex-1"><Smartphone className="absolute left-3 top-2.5 text-slate-400" size={18}/><Input name="code" placeholder="短信验证码" className="h-11 pl-10"/></div><Button type="button" variant="outline">获取验证码</Button></div>}<div className="flex items-center justify-between text-sm"><label className="flex items-center gap-2 text-slate-500"><input type="checkbox" defaultChecked/>记住登录</label><Link href="/password-recovery" className="text-sky-600">忘记密码？</Link></div>{error && <p className="text-sm text-red-600">{error}</p>}<Button className="h-11 w-full bg-sky-600 hover:bg-sky-700" disabled={loading}>{loading ? "登录中..." : "登录"}</Button></form><p className="mt-6 text-center text-sm text-slate-500">还没有账户？ <Link href="/register" className="text-sky-600">立即注册</Link></p></div></section></main>;
 }
