@@ -1,5 +1,5 @@
 import uuid
-import re
+import logging
 
 from typing import Optional
 
@@ -37,7 +37,10 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     async def on_after_forgot_password(
         self, user: User, token: str, request: Optional[Request] = None
     ):
-        await send_reset_password_email(user, token)
+        try:
+            await send_reset_password_email(user, token)
+        except Exception:
+            logging.getLogger(__name__).exception("Failed to send reset password email")
 
     async def on_after_request_verify(
         self, user: User, token: str, request: Optional[Request] = None
@@ -50,15 +53,10 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         user: UserCreate,
     ) -> None:
         errors = []
-
-        if len(password) < 8:
-            errors.append("Password should be at least 8 characters.")
-        if user.email in password:
-            errors.append("Password should not contain e-mail.")
-        if not any(char.isupper() for char in password):
-            errors.append("Password should contain at least one uppercase letter.")
-        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
-            errors.append("Password should contain at least one special character.")
+        if len(password) < 6:
+            errors.append("密码长度不能少于 6 位")
+        if not password.strip():
+            errors.append("密码不能为纯空白")
 
         if errors:
             raise InvalidPasswordException(reason=errors)

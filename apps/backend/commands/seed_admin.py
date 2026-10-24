@@ -12,8 +12,8 @@ import app.model.item_model  # noqa: F401 — register Item for User relationshi
 
 load_dotenv()
 
-SEED_ADMIN_EMAIL = os.getenv("SEED_ADMIN_EMAIL", "admin@dty.com")
-SEED_ADMIN_PASSWORD = os.getenv("SEED_ADMIN_PASSWORD", "admin123")
+SEED_ADMIN_EMAIL = os.getenv("SEED_ADMIN_EMAIL", "admin@datangyuan.cn")
+SEED_ADMIN_PASSWORD = os.getenv("SEED_ADMIN_PASSWORD", "123456")
 
 
 async def seed_admin() -> None:
@@ -21,21 +21,16 @@ async def seed_admin() -> None:
         result = await session.execute(
             select(User).where(User.email == SEED_ADMIN_EMAIL)
         )
-        if result.scalar_one_or_none():
-            print(f"Admin user already exists: {SEED_ADMIN_EMAIL}")
-            return
-
-        user = User(
-            id=uuid.uuid4(),
-            email=SEED_ADMIN_EMAIL,
-            hashed_password=PasswordHelper().hash(SEED_ADMIN_PASSWORD),
-            is_active=True,
-            is_superuser=True,
-            is_verified=True,
-        )
-        session.add(user)
+        users = [("admin", SEED_ADMIN_EMAIL, "管理员", "13800000001", True),
+                 ("zhangsan", "zhangsan@datangyuan.cn", "张三", "13800000002", False)]
+        for username, email, nickname, phone, is_superuser in users:
+            user = (await session.execute(select(User).where(User.username == username))).scalar_one_or_none()
+            if user is None:
+                session.add(User(id=uuid.uuid4(), username=username, email=email, nickname=nickname,
+                    phone=phone, hashed_password=PasswordHelper().hash(SEED_ADMIN_PASSWORD),
+                    is_active=True, is_superuser=is_superuser, is_verified=True))
         await session.commit()
-        print(f"Created admin user: {SEED_ADMIN_EMAIL}")
+        print("Seeded admin and zhangsan users")
 
 
 if __name__ == "__main__":

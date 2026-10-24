@@ -106,8 +106,8 @@
         "tags": [
           "auth"
         ],
-        "summary": "Register:Register",
-        "operationId": "register:register",
+        "summary": "Register",
+        "operationId": "register",
         "requestBody": {
           "content": {
             "application/json": {
@@ -125,33 +125,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UserRead"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                },
-                "examples": {
-                  "REGISTER_USER_ALREADY_EXISTS": {
-                    "summary": "A user with this email already exists.",
-                    "value": {
-                      "detail": "REGISTER_USER_ALREADY_EXISTS"
-                    }
-                  },
-                  "REGISTER_INVALID_PASSWORD": {
-                    "summary": "Password validation failed.",
-                    "value": {
-                      "detail": {
-                        "code": "REGISTER_INVALID_PASSWORD",
-                        "reason": "Password should beat least 3 characters"
-                      }
-                    }
-                  }
                 }
               }
             }
@@ -174,20 +147,20 @@
         "tags": [
           "auth"
         ],
-        "summary": "Reset:Forgot Password",
-        "operationId": "reset:forgot_password",
+        "summary": "Forgot Password",
+        "operationId": "forgot_password",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_auth-reset_forgot_password"
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "202": {
+          "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
@@ -213,13 +186,13 @@
         "tags": [
           "auth"
         ],
-        "summary": "Reset:Reset Password",
-        "operationId": "reset:reset_password",
+        "summary": "Reset Password",
+        "operationId": "reset_password",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_auth-reset_reset_password"
+                "$ref": "#/components/schemas/ResetPasswordRequest"
               }
             }
           },
@@ -231,33 +204,6 @@
             "content": {
               "application/json": {
                 "schema": {}
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                },
-                "examples": {
-                  "RESET_PASSWORD_BAD_TOKEN": {
-                    "summary": "Bad or expired token.",
-                    "value": {
-                      "detail": "RESET_PASSWORD_BAD_TOKEN"
-                    }
-                  },
-                  "RESET_PASSWORD_INVALID_PASSWORD": {
-                    "summary": "Password validation failed.",
-                    "value": {
-                      "detail": {
-                        "code": "RESET_PASSWORD_INVALID_PASSWORD",
-                        "reason": "Password should be at least 3 characters"
-                      }
-                    }
-                  }
-                }
               }
             }
           },
@@ -376,6 +322,191 @@
             }
           }
         }
+      }
+    },
+    "/users/me/change-password": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Change Password",
+        "operationId": "change_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/users/me/send-phone-code": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Send Phone Code",
+        "operationId": "send_phone_code",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/users/me/change-phone": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Change Phone",
+        "operationId": "change_phone",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePhoneRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/users/me/bind-wechat": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Bind Wechat",
+        "operationId": "bind_wechat",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/BindWechatRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Data"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
       }
     },
     "/users/me": {
@@ -910,37 +1041,22 @@
         ],
         "title": "BearerResponse"
       },
-      "Body_auth-reset_forgot_password": {
+      "BindWechatRequest": {
         "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "title": "Email"
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
           }
         },
         "type": "object",
-        "required": [
-          "email"
-        ],
-        "title": "Body_auth-reset:forgot_password"
-      },
-      "Body_auth-reset_reset_password": {
-        "properties": {
-          "token": {
-            "type": "string",
-            "title": "Token"
-          },
-          "password": {
-            "type": "string",
-            "title": "Password"
-          }
-        },
-        "type": "object",
-        "required": [
-          "token",
-          "password"
-        ],
-        "title": "Body_auth-reset:reset_password"
+        "title": "BindWechatRequest"
       },
       "Body_auth-verify_request-token": {
         "properties": {
@@ -982,6 +1098,43 @@
           "file"
         ],
         "title": "Body_files-upload_file"
+      },
+      "ChangePasswordRequest": {
+        "properties": {
+          "old_password": {
+            "type": "string",
+            "title": "Old Password"
+          },
+          "new_password": {
+            "type": "string",
+            "title": "New Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "old_password",
+          "new_password"
+        ],
+        "title": "ChangePasswordRequest"
+      },
+      "ChangePhoneRequest": {
+        "properties": {
+          "mobile": {
+            "type": "string",
+            "pattern": "^1\\d{10}$",
+            "title": "Mobile"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mobile",
+          "code"
+        ],
+        "title": "ChangePhoneRequest"
       },
       "ErrorModel": {
         "properties": {
@@ -1066,6 +1219,19 @@
           "download_url"
         ],
         "title": "FileUploadResponse"
+      },
+      "ForgotPasswordRequest": {
+        "properties": {
+          "account": {
+            "type": "string",
+            "title": "Account"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account"
+        ],
+        "title": "ForgotPasswordRequest"
       },
       "HTTPValidationError": {
         "properties": {
@@ -1162,6 +1328,38 @@
         ],
         "title": "ItemRead"
       },
+      "PhoneCodeRequest": {
+        "properties": {
+          "mobile": {
+            "type": "string",
+            "pattern": "^1\\d{10}$",
+            "title": "Mobile"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mobile"
+        ],
+        "title": "PhoneCodeRequest"
+      },
+      "ResetPasswordRequest": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "password"
+        ],
+        "title": "ResetPasswordRequest"
+      },
       "UserCreate": {
         "properties": {
           "email": {
@@ -1208,12 +1406,37 @@
             ],
             "title": "Is Verified",
             "default": false
+          },
+          "username": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 2,
+            "title": "Username"
+          },
+          "phone": {
+            "type": "string",
+            "pattern": "^1\\d{10}$",
+            "title": "Phone",
+            "description": "\u624b\u673a\u53f7\u683c\u5f0f\u4e0d\u6b63\u786e"
+          },
+          "nickname": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nickname"
           }
         },
         "type": "object",
         "required": [
           "email",
-          "password"
+          "password",
+          "username",
+          "phone"
         ],
         "title": "UserCreate"
       },
@@ -1243,12 +1466,50 @@
             "type": "boolean",
             "title": "Is Verified",
             "default": false
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "nickname": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nickname"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url"
           }
         },
         "type": "object",
         "required": [
           "id",
-          "email"
+          "email",
+          "username"
         ],
         "title": "UserRead"
       },
@@ -1309,6 +1570,28 @@
               }
             ],
             "title": "Is Verified"
+          },
+          "nickname": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nickname"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url"
           }
         },
         "type": "object",

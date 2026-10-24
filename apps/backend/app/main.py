@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from .schemas import UserCreate, UserRead, UserUpdate
+from .schemas import UserRead, UserUpdate
 from .users import auth_backend, fastapi_users, AUTH_URL_PATH
 from fastapi.middleware.cors import CORSMiddleware
 from .utils import simple_generate_unique_route_id
@@ -7,6 +7,8 @@ from app.routes.items import router as items_router
 from app.routes.files import router as files_router
 from app.core.config import settings
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
+from app.routes.auth_routes import router as auth_router
+from app.routes.users_routes import router as users_router
 
 app = FastAPI(
     generate_unique_id_function=simple_generate_unique_route_id,
@@ -30,21 +32,13 @@ app.include_router(
     prefix=f"/{AUTH_URL_PATH}/jwt",
     tags=["auth"],
 )
-app.include_router(
-    fastapi_users.get_register_router(UserRead, UserCreate),
-    prefix=f"/{AUTH_URL_PATH}",
-    tags=["auth"],
-)
-app.include_router(
-    fastapi_users.get_reset_password_router(),
-    prefix=f"/{AUTH_URL_PATH}",
-    tags=["auth"],
-)
+app.include_router(auth_router, prefix=f"/{AUTH_URL_PATH}", tags=["auth"])
 app.include_router(
     fastapi_users.get_verify_router(UserRead),
     prefix=f"/{AUTH_URL_PATH}",
     tags=["auth"],
 )
+app.include_router(users_router, prefix="/users", tags=["users"])
 app.include_router(
     fastapi_users.get_users_router(UserRead, UserUpdate),
     prefix="/users",

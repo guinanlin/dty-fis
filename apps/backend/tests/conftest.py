@@ -1,14 +1,13 @@
 from httpx import AsyncClient, ASGITransport
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from fastapi_users.db import SQLAlchemyUserDatabase
 from fastapi_users.password import PasswordHelper
 import uuid
 
 from app.core.config import settings
 from app.model.base_model import User, Base
 
-from app.core.database import get_user_db, get_async_session
+from app.core.database import get_user_db, get_async_session, FinanceUserDatabase
 from app.main import app
 from app.users import get_jwt_strategy
 
@@ -48,7 +47,7 @@ async def test_client(db_session):
 
     # FastAPI-Users database override (wraps session with user operation helpers)
     async def override_get_user_db():
-        session = SQLAlchemyUserDatabase(db_session, User)
+        session = FinanceUserDatabase(db_session, User)
         try:
             yield session
         finally:
@@ -79,6 +78,8 @@ async def authenticated_user(test_client, db_session):
     user_data = {
         "id": uuid.uuid4(),
         "email": "test@example.com",
+        "username": "testuser",
+        "phone": "13800000099",
         "hashed_password": PasswordHelper().hash("TestPassword123#"),
         "is_active": True,
         "is_superuser": False,

@@ -28,6 +28,8 @@ def mock_settings(mocker):
 def mock_user():
     return User(
         email="user@example.com",
+        username="emailuser",
+        phone="13800000098",
     )
 
 

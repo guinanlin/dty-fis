@@ -34,6 +34,8 @@ class Settings(BaseSettings):
 
     # Frontend
     FRONTEND_URL: str = "http://localhost:3000"
+    EMAIL_DEV_MODE: bool = False
+    SMS_DEV_MODE: bool = True
 
     # CORS
     CORS_ORIGINS: Set[str]
