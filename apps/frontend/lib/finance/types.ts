@@ -349,3 +349,11 @@ export interface CarryForwardItem {
   creditAmount: number;
   netAmount: number;
 }
+
+export type InvoiceTab = "output" | "input" | "receipt";
+export type InvoiceStatus = "正常" | "作废" | "红冲";
+export interface InvoiceLine { name: string; model: string; unit: string; quantity: number; price: number; amount: number; taxRate: number; tax: number; }
+export interface Invoice { id: string; accountSetId: string; tab: InvoiceTab; date: string; type: string; code: string; number: string; digitalNumber?: string; partner: string; amount: number; tax: number; total: number; status: InvoiceStatus; imageUrl?: string; templateId?: string; voucherId?: string; certification?: "未勾选" | "已勾选" | "已认证"; certificationPeriod?: string; lines: InvoiceLine[]; remark?: string; }
+export interface InvoiceTemplate { id: string; accountSetId: string; tab: InvoiceTab; name: string; isDefault: boolean; description: string; entries: Array<{ direction: BalanceDirection; subjectCode: string; subjectName: string; formula: "amount" | "tax" | "total"; }>; }
+export interface TaxBurdenInput { unbilled: number; deductions: number; otherOutput: number; otherInput: number; transferOut: number; unclaimedInput: number; openingCredit: number; relief: number; creditItems: number; customItems: number; targetRate: number; }
+export interface TaxBurdenResult { outputTax: number; inputTax: number; payable: number; endingCredit: number; rate: number; surcharge: number; salesAmount: number; }

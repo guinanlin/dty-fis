@@ -14,6 +14,8 @@ import {
   vouchers,
   voucherTemplates,
   voucherWords,
+  invoices,
+  invoiceTemplates,
 } from "./seed";
 import type {
   AccountSet,
@@ -38,6 +40,11 @@ import type {
   VoucherQuery,
   VoucherTemplate,
   VoucherWord,
+  Invoice,
+  InvoiceTab,
+  InvoiceTemplate,
+  TaxBurdenInput,
+  TaxBurdenResult,
 } from "./types";
 
 const wait = <T>(value: T, delay = 140) => new Promise<T>((resolve) => setTimeout(() => resolve(value), delay));
@@ -262,5 +269,29 @@ export const checkout = {
     const details = items.map((item) => ({ summary: `第${month}期 结转损益`, subjectId: item.subjectId, subjectCode: item.subjectCode, subjectName: item.subjectName, subjectPath: `${item.subjectCode} ${item.subjectName}`, balanceDirection: subjects.find((entry) => entry.id === item.subjectId)?.balanceDirection, debitAmount: item.netAmount > 0 ? item.netAmount : 0, creditAmount: item.netAmount < 0 ? Math.abs(item.netAmount) : 0, assistAccountings: {}, currencyId: `${accountSetId}-CNY`, exchangeRate: 1 }));
     const debit = details.reduce((sum, item) => sum + item.debitAmount, 0); const credit = details.reduce((sum, item) => sum + item.creditAmount, 0); details.push({ summary: `第${month}期 结转损益`, subjectId: profit.id, subjectCode: profit.code, subjectName: profit.name, subjectPath: `${profit.code} ${profit.name}`, balanceDirection: profit.balanceDirection, debitAmount: Math.max(0, credit - debit), creditAmount: Math.max(0, debit - credit), assistAccountings: {}, currencyId: `${accountSetId}-CNY`, exchangeRate: 1 });
     return voucher.save({ accountSetId, voucherWordId: `${accountSetId}-vw-转`, word: "转", year, month, date: `${year}-${String(month).padStart(2, "0")}-${new Date(year, month, 0).getDate()}`, attachmentCount: 0, status: "draft", sourceType: "carry-forward", createdBy: userId, details });
+  },
+};
+
+export function calculateTaxBurden(invoicesForPeriod: Invoice[], input: TaxBurdenInput): TaxBurdenResult {
+  const output = invoicesForPeriod.filter((item) => item.tab === "output" && item.status === "正常");
+  const red = invoicesForPeriod.filter((item) => item.tab === "output" && item.status === "红冲");
+  const inputInvoices = invoicesForPeriod.filter((item) => item.tab === "input" && item.status === "正常" && (item.certification === "已认证" || item.certification === "已勾选"));
+  const outputTax = output.reduce((sum, item) => sum + item.tax, 0) - red.reduce((sum, item) => sum + item.tax, 0) + input.unbilled + input.otherOutput - input.deductions;
+  const inputTax = inputInvoices.reduce((sum, item) => sum + item.tax, 0) + input.otherInput + input.creditItems - input.transferOut - input.unclaimedInput;
+  const payable = Math.max(0, outputTax - inputTax - input.openingCredit - input.relief - input.creditItems - input.customItems);
+  const salesAmount = output.reduce((sum, item) => sum + item.amount, 0);
+  return { outputTax, inputTax, payable, endingCredit: Math.max(0, inputTax + input.openingCredit - outputTax), rate: salesAmount ? payable / salesAmount : 0, surcharge: payable * .12, salesAmount };
+}
+
+export const invoice = {
+  list: (accountSetId: string, tab: InvoiceTab, keyword = "") => wait(invoices.filter((item) => item.accountSetId === accountSetId && item.tab === tab && (!keyword || `${item.partner} ${item.number} ${item.digitalNumber ?? ""}`.includes(keyword)))),
+  save: (value: Invoice) => wait(upsert(invoices, value)),
+  delete: async (id: string) => { const item = invoices.find((entry) => entry.id === id); if (item?.voucherId) throw new Error("已生成凭证的发票禁止删除"); const index = invoices.findIndex((entry) => entry.id === id); if (index >= 0) invoices.splice(index, 1); return wait(index >= 0); },
+  templates: { list: (accountSetId: string, tab?: InvoiceTab) => wait(invoiceTemplates.filter((item) => item.accountSetId === accountSetId && (!tab || item.tab === tab))), save: (value: InvoiceTemplate) => wait(upsert(invoiceTemplates, value)), delete: async (id: string) => { const item = invoiceTemplates.find((entry) => entry.id === id); if (item?.isDefault) throw new Error("默认模板不可删除"); const index = invoiceTemplates.findIndex((entry) => entry.id === id); if (index >= 0) invoiceTemplates.splice(index, 1); return wait(index >= 0); } },
+  generateVoucher: async (invoiceId: string, userId: string) => {
+    const item = invoices.find((entry) => entry.id === invoiceId); if (!item) throw new Error("发票不存在"); if (item.voucherId) throw new Error("同一发票不可重复生成凭证");
+    const template = invoiceTemplates.find((entry) => entry.id === item.templateId) ?? invoiceTemplates.find((entry) => entry.accountSetId === item.accountSetId && entry.tab === item.tab && entry.isDefault); if (!template) throw new Error("未找到凭证模板");
+    const details = template.entries.map((entry) => { const subjectItem = subjects.find((subject) => subject.accountSetId === item.accountSetId && subject.code === entry.subjectCode); if (!subjectItem) throw new Error(`缺少科目 ${entry.subjectCode}`); const amount = entry.formula === "amount" ? item.amount : entry.formula === "tax" ? item.tax : item.total; return { summary: `${item.partner} ${item.digitalNumber ?? item.number}`, subjectId: subjectItem.id, subjectCode: subjectItem.code, subjectName: subjectItem.name, debitAmount: entry.direction === "借" ? amount : 0, creditAmount: entry.direction === "贷" ? amount : 0, assistAccountings: {}, currencyId: `${item.accountSetId}-CNY`, exchangeRate: 1 }; });
+    const saved = await voucher.save({ accountSetId: item.accountSetId, voucherWordId: `${item.accountSetId}-vw-记`, word: "记", year: Number(item.date.slice(0, 4)), month: Number(item.date.slice(5, 7)), date: item.date, attachmentCount: 1, status: "draft", sourceType: "import", createdBy: userId, details }); item.voucherId = saved.id; return wait(saved);
   },
 };

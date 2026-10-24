@@ -15,6 +15,8 @@ import type {
   Voucher,
   VoucherTemplate,
   VoucherWord,
+  Invoice,
+  InvoiceTemplate,
 } from "./types";
 
 const now = new Date();
@@ -152,3 +154,19 @@ export const dashboardByAccountSet: Record<string, HomeDashboard> = Object.fromE
   costData: [{ name: "销售费用", value: 12800 + accountIndex * 2000 }, { name: "管理费用", value: 43060 + accountIndex * 3000 }, { name: "财务费用", value: 860 + accountIndex * 200 }],
   revenueProfitByMonth: Array.from({ length: 12 }, (_, month) => ({ month: month + 1, 主营业务收入: 62 + month * 7 + accountIndex * 6, 本年利润: 10 + month * 2 + accountIndex })),
 }])) ;
+
+const invoiceLine = (name: string, amount: number, taxRate: number): Invoice["lines"][number] => ({ name, model: "标准", unit: "项", quantity: 1, price: amount, amount, taxRate, tax: Number((amount * taxRate).toFixed(2)) });
+export const invoices: Invoice[] = [
+  { id: "a1-inv-1", accountSetId: "a1", tab: "output", date: "2026-10-13", type: "电子普票", code: "", number: "260013340920", digitalNumber: "26132000000334092027", partner: "河北省通用职业培训学校", amount: 283.02, tax: 16.98, total: 300, status: "正常", lines: [invoiceLine("职业培训服务", 283.02, .06)] },
+  { id: "a1-inv-2", accountSetId: "a1", tab: "output", date: "2026-10-08", type: "数电专票", code: "", number: "26132000000334092018", digitalNumber: "26132000000334092018", partner: "杭州智联信息技术有限公司", amount: 10000, tax: 1300, total: 11300, status: "正常", lines: [invoiceLine("软件服务", 10000, .13)] },
+  { id: "a1-inv-3", accountSetId: "a1", tab: "output", date: "2026-10-05", type: "数电普票", code: "", number: "26132000000334092011", digitalNumber: "26132000000334092011", partner: "上海云帆客户", amount: 2000, tax: 120, total: 2120, status: "红冲", lines: [invoiceLine("咨询服务", 2000, .06)] },
+  { id: "a1-inv-4", accountSetId: "a1", tab: "input", date: "2026-10-12", type: "增值税专用发票", code: "110026", number: "88990011", partner: "杭州办公用品有限公司", amount: 1500, tax: 195, total: 1695, status: "正常", certification: "已认证", certificationPeriod: "2026-10", lines: [invoiceLine("办公用品", 1500, .13)] },
+  { id: "a1-inv-5", accountSetId: "a1", tab: "input", date: "2026-10-10", type: "普通发票", code: "", number: "5500123", partner: "杭州餐饮服务有限公司", amount: 800, tax: 0, total: 800, status: "正常", certification: "未勾选", lines: [invoiceLine("业务招待", 800, 0)] },
+  { id: "a1-inv-6", accountSetId: "a1", tab: "receipt", date: "2026-10-09", type: "出租车票", code: "", number: "TAXI-0921", partner: "杭州市出租汽车", amount: 109.17, tax: 9.83, total: 119, status: "正常", lines: [invoiceLine("客运服务", 109.17, .09)] },
+];
+export const invoiceTemplates: InvoiceTemplate[] = accountSets.flatMap((a) => [
+  { id: `${a.id}-inv-tpl-output`, accountSetId: a.id, tab: "output", name: "赊销模板", isDefault: true, description: "借应收账款；贷主营业务收入、销项税额", entries: [{ direction: "借", subjectCode: "1122", subjectName: "应收账款", formula: "total" }, { direction: "贷", subjectCode: "6001", subjectName: "主营业务收入", formula: "amount" }, { direction: "贷", subjectCode: "2221", subjectName: "应交税费—销项税额", formula: "tax" }] },
+  { id: `${a.id}-inv-tpl-output-cash`, accountSetId: a.id, tab: "output", name: "现销模板", isDefault: false, description: "借银行存款；贷主营业务收入、销项税额", entries: [{ direction: "借", subjectCode: "1002", subjectName: "银行存款", formula: "total" }, { direction: "贷", subjectCode: "6001", subjectName: "主营业务收入", formula: "amount" }, { direction: "贷", subjectCode: "2221", subjectName: "应交税费—销项税额", formula: "tax" }] },
+  { id: `${a.id}-inv-tpl-input`, accountSetId: a.id, tab: "input", name: "赊购模板", isDefault: true, description: "借库存商品、进项税额；贷应付账款", entries: [{ direction: "借", subjectCode: "1405", subjectName: "库存商品", formula: "amount" }, { direction: "借", subjectCode: "2221", subjectName: "应交税费—进项税额", formula: "tax" }, { direction: "贷", subjectCode: "2202", subjectName: "应付账款", formula: "total" }] },
+  { id: `${a.id}-inv-tpl-receipt`, accountSetId: a.id, tab: "receipt", name: "费用小票模板", isDefault: true, description: "借管理费用；贷其他应付款", entries: [{ direction: "借", subjectCode: "6602", subjectName: "管理费用", formula: "total" }, { direction: "贷", subjectCode: "2241", subjectName: "其他应付款", formula: "total" }] },
+]);
