@@ -160,7 +160,21 @@ export const asset = {
   changes: { list: (accountSetId: string) => wait(assetChanges.filter((x) => x.accountSetId === accountSetId)) },
   calculateMonthlyDepreciation: (originalValue: number, usefulLifeMonths: number, residualRate = 5) => round2(originalValue * (1 - residualRate / 100) / usefulLifeMonths),
   periodDepreciation: (x: AssetCard, year: number, month: number) => { if (x.status === "已清理" || x.endingAccumulatedDepreciation >= x.originalValue - x.residualValue || `${year}-${String(month).padStart(2, "0")}` <= x.startUseDate.slice(0, 7)) return 0; return round2(Math.min(x.monthlyDepreciation, x.originalValue - x.residualValue - x.endingAccumulatedDepreciation)); },
-  report: async (accountSetId: string, year: number, month: number) => (await asset.cards.list(accountSetId, { includeCleared: true })).map((x) => { const current = asset.periodDepreciation(x, year, month); return { ...x, currentDepreciation: current, endingAccumulatedDepreciation: round2(x.endingAccumulatedDepreciation + current), netValue: round2(x.originalValue - x.endingAccumulatedDepreciation - current - x.impairmentProvision) }; }),
+  report: async (accountSetId: string, year: number, month: number) => (await asset.cards.list(accountSetId, { includeCleared: true })).map((x) => { const current = asset.periodDepreciation(x, year, month); const ending = round2(x.openingAccumulatedDepreciation + current); return { ...x, currentDepreciation: current, endingAccumulatedDepreciation: ending, netValue: round2(x.originalValue - ending - x.impairmentProvision) }; }),
+  generateDepreciationVoucher: async (accountSetId: string, year: number, month: number) => {
+    const remark = `[资产折旧]${year}-${String(month).padStart(2, "0")}`;
+    if (vouchers.some((x) => x.accountSetId === accountSetId && x.remark === remark && x.status !== "void")) throw new Error("该期间已生成折旧凭证");
+    const rows = await asset.report(accountSetId, year, month); const groups = new Map<string, number>();
+    rows.forEach((row) => { if (row.currentDepreciation > 0) groups.set(row.depreciationExpenseSubject, round2((groups.get(row.depreciationExpenseSubject) ?? 0) + row.currentDepreciation)); });
+    const word = voucherWords.find((x) => x.accountSetId === accountSetId && x.isDefault) ?? voucherWords.find((x) => x.accountSetId === accountSetId)!;
+    const depreciation = subjects.find((x) => x.accountSetId === accountSetId && x.code === "1602")!;
+    const details = [...groups.entries()].map(([subjectLabel, amount], index) => { const code = subjectLabel.startsWith("6601") ? "6601" : "6602"; const subjectItem = subjects.find((x) => x.accountSetId === accountSetId && x.code === code)!; return { id: `${remark}-${index}`, voucherId: "", summary: "计提固定资产折旧", subjectId: subjectItem.id, subjectCode: subjectItem.code, subjectName: `${subjectItem.name}-折旧`, debitAmount: amount, creditAmount: 0, assistAccountings: {}, currencyId: `${accountSetId}-CNY`, exchangeRate: 1 }; });
+    const total = details.reduce((sum, x) => sum + x.debitAmount, 0); if (!total) throw new Error("本期没有可计提的折旧");
+    const saved = await voucher.save({ accountSetId, voucherWordId: word.id, word: word.word, year, month, date: `${year}-${String(month).padStart(2, "0")}-28`, attachmentCount: 0, status: "draft", sourceType: "manual", remark, createdBy: "u1", details: [...details, { id: `${remark}-credit`, voucherId: "", summary: "计提固定资产折旧", subjectId: depreciation.id, subjectCode: depreciation.code, subjectName: depreciation.name, debitAmount: 0, creditAmount: total, assistAccountings: {}, currencyId: `${accountSetId}-CNY`, exchangeRate: 1 }] });
+    rows.forEach((row) => { const source = assetCards.find((x) => x.id === row.id); if (source) { source.endingAccumulatedDepreciation = row.endingAccumulatedDepreciation; source.depreciatedMonths += row.currentDepreciation > 0 ? 1 : 0; source.netValue = row.netValue; } });
+    return wait(saved);
+  },
+  deleteDepreciationVoucher: async (accountSetId: string, year: number, month: number) => { const remark = `[资产折旧]${year}-${String(month).padStart(2, "0")}`; const item = vouchers.find((x) => x.accountSetId === accountSetId && x.remark === remark && x.status !== "void"); if (!item) return wait(false); const index = vouchers.findIndex((x) => x.id === item.id); vouchers.splice(index, 1); return wait(true); },
 };
 
 function crudService<T extends { id: string; accountSetId: string }>(items: T[]) {
