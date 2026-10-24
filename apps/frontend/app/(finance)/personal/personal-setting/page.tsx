@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
+import { PersonalCard } from "@/components/finance/PersonalCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFinApp } from "@/lib/finance/auth-context";
@@ -68,24 +68,6 @@ export default function PersonalSettingPage() {
         <Button onClick={handleSave}>保存</Button>
       </div>
     </PersonalCard>
-  );
-}
-
-export function PersonalCard({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="mx-auto max-w-2xl rounded-xl border bg-white p-6">
-      <h1 className="text-2xl font-semibold">{title}</h1>
-      <p className="mt-1 mb-6 text-sm text-slate-500">{subtitle}</p>
-      {children}
-    </div>
   );
 }
 

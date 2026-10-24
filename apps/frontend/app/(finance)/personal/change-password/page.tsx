@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFinApp } from "@/lib/finance/auth-context";
 import { userSettings } from "@/lib/finance/service";
-import { PersonalCard } from "../personal-setting/page";
+import { PersonalCard } from "@/components/finance/PersonalCard";
 
 export default function ChangePasswordPage() {
   const { currentUser } = useFinApp();
