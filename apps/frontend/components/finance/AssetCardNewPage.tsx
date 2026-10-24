@@ -164,6 +164,10 @@ export default function AssetCardNewPage() {
         ...values,
         code: form.assetCode,
         accountSetId: currentAccountSet.id,
+        quantity: Number(form.quantity),
+        taxAmount: Number(form.taxAmount),
+        impairmentProvision: Number(form.impairmentProvision),
+        openingAccumulatedDepreciation: Number(form.openingAccumulatedDepreciation),
         fixedAssetSubjectCode: subjects.find(
           (x) => x.id === form.fixedAssetSubjectCode,
         )?.code,
