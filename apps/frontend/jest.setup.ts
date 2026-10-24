@@ -1,5 +1,2 @@
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
-jest.mock("react", () => ({
-  ...jest.requireActual("react"),
-  act: async (callback: () => void | Promise<void>) => await callback(),
-}));
+Object.defineProperty(window, "matchMedia", { writable: true, value: (query: string) => ({ matches: false, media: query, onchange: null, addListener: jest.fn(), removeListener: jest.fn(), addEventListener: jest.fn(), removeEventListener: jest.fn(), dispatchEvent: jest.fn() }) });
