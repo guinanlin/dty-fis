@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SubjectSelect } from "@/components/finance/SubjectSelect";
+import { CodeSubjectSelect } from "@/components/finance/CodeSubjectSelect";
 import { PageHeader } from "@/components/finance/PageHeader";
 import { useFinApp } from "@/lib/finance/auth-context";
 import { asset, subject } from "@/lib/finance/service";
@@ -79,7 +79,7 @@ export default function AssetCardNewPage() {
       setForm((old) => ({
         ...old,
         assetCode: code,
-        depreciationExpenseSubjectCode: "a1",
+        depreciationExpenseSubjectCode: "",
       }));
     });
   }, [currentAccountSet]);
@@ -92,14 +92,10 @@ export default function AssetCardNewPage() {
         depreciationMethod: selected.depreciationMethod,
         usefulLifeMonths: String(selected.usefulLifeMonths),
         residualRate: String(selected.residualRate),
-        fixedAssetSubjectCode: findId(selected.fixedAssetSubjectCode),
-        accumulatedDepreciationSubjectCode: findId(
+        fixedAssetSubjectCode: selected.fixedAssetSubjectCode,
+        accumulatedDepreciationSubjectCode:
           selected.accumulatedDepreciationSubjectCode,
-        ),
       }));
-    function findId(code: string) {
-      return subjects.find((x) => x.code === code)?.id ?? "";
-    }
   }, [currentAccountSet, form.categoryCode, categories, subjects]);
   useEffect(() => {
     if (!manual)
@@ -129,8 +125,6 @@ export default function AssetCardNewPage() {
     form.impairmentProvision,
     manual,
   ]);
-  const codeToId = (code: string) =>
-    subjects.find((x) => x.code === code)?.id ?? "";
   const subjectFields = [
     ["fixedAssetSubjectCode", "固定资产科目*"],
     ["purchaseCounterpartSubjectCode", "资产购入对方科目*"],
@@ -153,7 +147,7 @@ export default function AssetCardNewPage() {
     };
     const nextErrors = validateAssetCardForm(values);
     subjectFields.forEach(([key]) => {
-      if (form[key] && !subjects.some((x) => x.id === form[key]))
+      if (form[key] && !subjects.some((x) => x.code === form[key]))
         nextErrors[key] = "请选择有效科目";
     });
     setErrors(nextErrors);
@@ -167,21 +161,9 @@ export default function AssetCardNewPage() {
         quantity: Number(form.quantity),
         taxAmount: Number(form.taxAmount),
         impairmentProvision: Number(form.impairmentProvision),
-        openingAccumulatedDepreciation: Number(form.openingAccumulatedDepreciation),
-        fixedAssetSubjectCode: subjects.find(
-          (x) => x.id === form.fixedAssetSubjectCode,
-        )?.code,
-        purchaseCounterpartSubjectCode: subjects.find(
-          (x) => x.id === form.purchaseCounterpartSubjectCode,
-        )?.code,
-        taxSubjectCode: subjects.find((x) => x.id === form.taxSubjectCode)
-          ?.code,
-        accumulatedDepreciationSubjectCode: subjects.find(
-          (x) => x.id === form.accumulatedDepreciationSubjectCode,
-        )?.code,
-        depreciationExpenseSubjectCode: subjects.find(
-          (x) => x.id === form.depreciationExpenseSubjectCode,
-        )?.code,
+        openingAccumulatedDepreciation: Number(
+          form.openingAccumulatedDepreciation,
+        ),
       });
       setSuccess("资产卡片保存成功");
       const next = await asset.cards.maxCode(currentAccountSet.id);
@@ -189,7 +171,10 @@ export default function AssetCardNewPage() {
       else
         setForm(
           action === "new"
-            ? initial(currentPeriod.year, currentPeriod.month)
+            ? {
+                ...initial(currentPeriod.year, currentPeriod.month),
+                assetCode: next,
+              }
             : { ...form, assetCode: next },
         );
     } finally {
@@ -267,7 +252,7 @@ export default function AssetCardNewPage() {
                 set("department", e.target.value);
                 set(
                   "depreciationExpenseSubjectCode",
-                  codeToId(expenseSubjectCodeForDepartment(e.target.value)),
+                  expenseSubjectCodeForDepartment(e.target.value),
                 );
               }}
             >
@@ -276,9 +261,18 @@ export default function AssetCardNewPage() {
                 <option key={x}>{x}</option>
               ))}
             </select>
+            {errors.department && (
+              <em className="text-xs text-red-600">{errors.department}</em>
+            )}
           </label>
           {field("开始使用日期*", "startUseDate", "date")}
-          {field("数量*", "quantity", "number")}
+          <Stepper
+            label="数量*"
+            value={form.quantity}
+            min={1}
+            onChange={(value) => set("quantity", value)}
+            error={errors.quantity}
+          />
           {field("规格型号", "model")}
           {field("存放地点", "location")}
           <label className="space-y-1 text-sm">
@@ -300,7 +294,19 @@ export default function AssetCardNewPage() {
         <h2 className="mb-4 font-semibold">折旧方法</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           <label className="space-y-1 text-sm">
-            <span>折旧方法*</span>
+            <span
+              title={Object.entries(methodDescriptions)
+                .map(
+                  ([key, description]) =>
+                    `${methodLabels[key as FormDepreciationMethod]}：${description}`,
+                )
+                .join("；")}
+            >
+              折旧方法*{" "}
+              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 text-[10px]">
+                ?
+              </span>
+            </span>
             <select
               className="h-10 w-full rounded-md border px-3"
               value={form.depreciationMethod}
@@ -316,8 +322,19 @@ export default function AssetCardNewPage() {
                 </option>
               ))}
             </select>
+            {errors.depreciationMethod && (
+              <em className="text-xs text-red-600">
+                {errors.depreciationMethod}
+              </em>
+            )}
           </label>
-          {field("预计使用期数*", "usefulLifeMonths", "number")}
+          <Stepper
+            label="预计使用期数*"
+            value={form.usefulLifeMonths}
+            min={1}
+            onChange={(value) => set("usefulLifeMonths", value)}
+            error={errors.usefulLifeMonths}
+          />
         </div>
       </section>
       <section className="rounded-xl border bg-white p-5">
@@ -327,7 +344,13 @@ export default function AssetCardNewPage() {
           {field("税额", "taxAmount", "number")}
           {field("残值率*", "residualRate", "number")}
           {field("减值准备", "impairmentProvision", "number")}
-          {field("已折旧期间*", "depreciatedMonths", "number")}
+          <Stepper
+            label="已折旧期间*"
+            value={form.depreciatedMonths}
+            min={0}
+            onChange={(value) => set("depreciatedMonths", value)}
+            error={errors.depreciatedMonths}
+          />
           {field("期初累计折旧", "openingAccumulatedDepreciation", "number")}
           {field("月折旧额*（可手改）", "monthlyDepreciation", "number")}
         </div>
@@ -351,10 +374,10 @@ export default function AssetCardNewPage() {
           {subjectFields.map(([key, label]) => (
             <label key={key} className="space-y-1 text-sm">
               <span>{label}</span>
-              <SubjectSelect
+              <CodeSubjectSelect
                 subjects={subjects}
                 value={form[key]}
-                onChange={(id) => set(key, id)}
+                onChange={(code) => set(key, code)}
               />
               {errors[key] && (
                 <em className="text-xs text-red-600">{errors[key]}</em>
@@ -387,5 +410,57 @@ export default function AssetCardNewPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+function Stepper({
+  label,
+  value,
+  min,
+  onChange,
+  error,
+}: {
+  label: string;
+  value: string;
+  min: number;
+  onChange: (value: string) => void;
+  error?: string;
+}) {
+  const change = (delta: number) =>
+    onChange(String(Math.max(min, Number(value || min) + delta)));
+  return (
+    <label className="space-y-1 text-sm">
+      <span>{label}</span>
+      <div className="flex h-10">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-10 rounded-r-none"
+          onClick={() => change(-1)}
+        >
+          −
+        </Button>
+        <Input
+          type="number"
+          min={min}
+          className="h-10 rounded-none text-center"
+          value={value}
+          onChange={(event) =>
+            onChange(String(Math.max(min, Number(event.target.value))))
+          }
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-10 rounded-l-none"
+          onClick={() => change(1)}
+        >
+          ＋
+        </Button>
+      </div>
+      {error && <em className="text-xs text-red-600">{error}</em>}
+    </label>
   );
 }
