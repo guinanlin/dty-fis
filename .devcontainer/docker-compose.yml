@@ -89,6 +89,8 @@ services:
       MAIL_SSL_TLS: "False"
       USE_CREDENTIALS: "False"
       FRONTEND_URL: http://localhost:${FRONTEND_PORT:-3656}
+      EMAIL_DEV_MODE: "true"
+      SMS_DEV_MODE: "true"
       CORS_ORIGINS: '["*"]'
       ACCESS_SECRET_KEY: dev-access-secret-change-in-production
       RESET_PASSWORD_SECRET_KEY: dev-reset-secret-change-in-production

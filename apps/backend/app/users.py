@@ -10,6 +10,7 @@ from fastapi_users import (
     UUIDIDMixin,
     InvalidPasswordException,
 )
+from fastapi_users.jwt import generate_jwt
 
 from fastapi_users.authentication import (
     AuthenticationBackend,
@@ -30,6 +31,24 @@ AUTH_URL_PATH = "auth"
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     reset_password_token_secret = settings.RESET_PASSWORD_SECRET_KEY
     verification_token_secret = settings.VERIFICATION_SECRET_KEY
+
+    async def authenticate(self, credentials):
+        return await self.user_db.authenticate(credentials)
+
+    async def forgot_password(self, user: User, request: Optional[Request] = None):
+        if not user.is_active:
+            return None
+        token = generate_jwt(
+            {
+                "sub": str(user.id),
+                "password_fgpt": self.password_helper.hash(user.hashed_password),
+                "aud": self.reset_password_token_audience,
+            },
+            self.reset_password_token_secret,
+            self.reset_password_token_lifetime_seconds,
+        )
+        await self.on_after_forgot_password(user, token, request)
+        return token
 
     async def on_after_register(self, user: User, request: Optional[Request] = None):
         print(f"User {user.id} has registered.")
