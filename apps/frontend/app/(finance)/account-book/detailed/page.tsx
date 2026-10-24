@@ -1,18 +1,210 @@
 "use client";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { MoneyText } from "@/components/finance/MoneyText";
-import { SubjectSelect } from "@/components/finance/SubjectSelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MoneyText } from "@/components/finance/MoneyText";
+import { SubjectSelect } from "@/components/finance/SubjectSelect";
 import { useFinApp } from "@/lib/finance/auth-context";
 import { accountBook, subject } from "@/lib/finance/service";
 import type { LedgerLine, Subject } from "@/lib/finance/types";
 
-export default function DetailedAccountsPage() {
-  const { currentAccountSet, currentPeriod } = useFinApp(); const [subjects, setSubjects] = useState<Subject[]>([]); const [subjectId, setSubjectId] = useState(""); const [rows, setRows] = useState<LedgerLine[]>([]); const [assistKeyword, setAssistKeyword] = useState(""); const [period, setPeriod] = useState(currentPeriod);
-  useEffect(() => { if (currentAccountSet) subject.tree(currentAccountSet.id).then((items) => { setSubjects(items); setSubjectId((value) => value || items[0]?.id || ""); }); }, [currentAccountSet]); const load = () => { if (currentAccountSet && subjectId) accountBook.detailedAccounts(currentAccountSet.id, period.year, period.month, subjectId, assistKeyword).then(setRows); }; useEffect(load, [assistKeyword, currentAccountSet, period, subjectId]);
-  return <div className="space-y-5"><div><h1 className="text-2xl font-semibold">明细账</h1><p className="mt-1 text-sm text-slate-500">按科目查询期初余额、凭证发生额及逐笔余额</p></div><div className="flex flex-wrap gap-3 rounded-xl border bg-white p-4"><select value={period.year} onChange={(event) => setPeriod({ ...period, year: Number(event.target.value) })} className="rounded-md border px-3 text-sm">{Array.from({ length: 5 }, (_, index) => currentPeriod.year - index).map((year) => <option key={year}>{year}年</option>)}</select><select value={period.month} onChange={(event) => setPeriod({ ...period, month: Number(event.target.value) })} className="rounded-md border px-3 text-sm">{Array.from({ length: 12 }, (_, index) => index + 1).map((month) => <option key={month} value={month}>第{month}期</option>)}</select><SubjectSelect subjects={subjects} value={subjectId} onChange={setSubjectId}/><Input className="max-w-52" value={assistKeyword} onChange={(event) => setAssistKeyword(event.target.value)} placeholder="辅助核算关键字"/><Button onClick={load}>查询</Button></div><LedgerTable rows={rows}/></div>;
+function FilterBar({
+  period,
+  currentYear,
+  subjects,
+  subjectId,
+  assistKeyword,
+  onPeriodChange,
+  onSubjectChange,
+  onKeywordChange,
+  onQuery,
+}: {
+  period: { year: number; month: number };
+  currentYear: number;
+  subjects: Subject[];
+  subjectId: string;
+  assistKeyword: string;
+  onPeriodChange: (period: { year: number; month: number }) => void;
+  onSubjectChange: (value: string) => void;
+  onKeywordChange: (value: string) => void;
+  onQuery: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-3 rounded-xl border bg-white p-4">
+      <select
+        value={period.year}
+        onChange={(event) =>
+          onPeriodChange({ ...period, year: Number(event.target.value) })
+        }
+        className="rounded-md border px-3 text-sm"
+      >
+        {Array.from({ length: 5 }, (_, index) => currentYear - index).map(
+          (year) => (
+            <option key={year}>{year}年</option>
+          ),
+        )}
+      </select>
+      <select
+        value={period.month}
+        onChange={(event) =>
+          onPeriodChange({ ...period, month: Number(event.target.value) })
+        }
+        className="rounded-md border px-3 text-sm"
+      >
+        {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => (
+          <option key={month} value={month}>
+            第{month}期
+          </option>
+        ))}
+      </select>
+      <SubjectSelect
+        subjects={subjects}
+        value={subjectId}
+        onChange={onSubjectChange}
+      />
+      <Input
+        className="max-w-52"
+        value={assistKeyword}
+        onChange={(event) => onKeywordChange(event.target.value)}
+        placeholder="辅助核算关键字"
+      />
+      <Button onClick={onQuery}>查询</Button>
+    </div>
+  );
 }
 
-function LedgerTable({ rows }: { rows: LedgerLine[] }) { return <div className="overflow-x-auto rounded-xl border bg-white"><table className="w-full min-w-[880px] text-sm"><thead className="bg-slate-50 text-slate-600"><tr>{["日期", "凭证字号", "科目", "摘要", "借方金额", "贷方金额", "方向", "余额"].map((title) => <th key={title} className="border-b px-3 py-3 text-left last:text-right">{title}</th>)}</tr></thead><tbody>{rows.map((row) => <tr key={row.id} className={row.voucherId ? "hover:bg-sky-50" : "bg-amber-50/60 font-medium"}><td className="border-b px-3 py-3">{row.date}</td><td className="border-b px-3 py-3">{row.voucherId ? <Link className="text-sky-600" href={`/voucher/form/${row.voucherId}`}>{row.voucherLabel}</Link> : ""}</td><td className="border-b px-3 py-3">{row.subjectCode} {row.subjectName}</td><td className="border-b px-3 py-3">{row.summary}</td><td className="border-b px-3 py-3 text-right"><MoneyText value={row.debitAmount}/></td><td className="border-b px-3 py-3 text-right"><MoneyText value={row.creditAmount}/></td><td className="border-b px-3 py-3 text-center">{row.direction}</td><td className="border-b px-3 py-3 text-right"><MoneyText value={row.balance}/></td></tr>)}{!rows.length && <tr><td colSpan={8} className="p-12 text-center text-slate-400">暂无数据</td></tr>}</tbody></table></div>; }
+export default function DetailedAccountsPage() {
+  const { currentAccountSet, currentPeriod } = useFinApp();
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [subjectId, setSubjectId] = useState("");
+  const [rows, setRows] = useState<LedgerLine[]>([]);
+  const [assistKeyword, setAssistKeyword] = useState("");
+  const [period, setPeriod] = useState(currentPeriod);
+
+  useEffect(() => {
+    if (currentAccountSet) {
+      subject.tree(currentAccountSet.id).then((items) => {
+        setSubjects(items);
+        setSubjectId((value) => value || items[0]?.id || "");
+      });
+    }
+  }, [currentAccountSet]);
+
+  const load = () => {
+    if (currentAccountSet && subjectId) {
+      accountBook
+        .detailedAccounts(
+          currentAccountSet.id,
+          period.year,
+          period.month,
+          subjectId,
+          assistKeyword,
+        )
+        .then(setRows);
+    }
+  };
+
+  useEffect(load, [assistKeyword, currentAccountSet, period, subjectId]);
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-semibold">明细账</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          按科目查询期初余额、凭证发生额及逐笔余额
+        </p>
+      </div>
+      <FilterBar
+        period={period}
+        currentYear={currentPeriod.year}
+        subjects={subjects}
+        subjectId={subjectId}
+        assistKeyword={assistKeyword}
+        onPeriodChange={setPeriod}
+        onSubjectChange={setSubjectId}
+        onKeywordChange={setAssistKeyword}
+        onQuery={load}
+      />
+      <LedgerTable rows={rows} />
+    </div>
+  );
+}
+
+function LedgerTable({ rows }: { rows: LedgerLine[] }) {
+  return (
+    <div className="overflow-x-auto rounded-xl border bg-white">
+      <table className="w-full min-w-[880px] text-sm">
+        <thead className="bg-slate-50 text-slate-600">
+          <tr>
+            {[
+              "日期",
+              "凭证字号",
+              "科目",
+              "摘要",
+              "借方金额",
+              "贷方金额",
+              "方向",
+              "余额",
+            ].map((title) => (
+              <th
+                key={title}
+                className="border-b px-3 py-3 text-left last:text-right"
+              >
+                {title}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr
+              key={row.id}
+              className={
+                row.voucherId ? "hover:bg-sky-50" : "bg-amber-50/60 font-medium"
+              }
+            >
+              <td className="border-b px-3 py-3">{row.date}</td>
+              <td className="border-b px-3 py-3">
+                {row.voucherId ? (
+                  <Link
+                    className="text-sky-600"
+                    href={`/voucher/form/${row.voucherId}`}
+                  >
+                    {row.voucherLabel}
+                  </Link>
+                ) : (
+                  ""
+                )}
+              </td>
+              <td className="border-b px-3 py-3">
+                {row.subjectCode} {row.subjectName}
+              </td>
+              <td className="border-b px-3 py-3">{row.summary}</td>
+              <td className="border-b px-3 py-3 text-right">
+                <MoneyText value={row.debitAmount} />
+              </td>
+              <td className="border-b px-3 py-3 text-right">
+                <MoneyText value={row.creditAmount} />
+              </td>
+              <td className="border-b px-3 py-3 text-center">
+                {row.direction}
+              </td>
+              <td className="border-b px-3 py-3 text-right">
+                <MoneyText value={row.balance} />
+              </td>
+            </tr>
+          ))}
+          {!rows.length && (
+            <tr>
+              <td colSpan={8} className="p-12 text-center text-slate-400">
+                暂无数据
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}

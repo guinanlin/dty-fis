@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { MoneyText } from "@/components/finance/MoneyText";
 import { SubjectSelect } from "@/components/finance/SubjectSelect";
@@ -6,4 +7,140 @@ import { useFinApp } from "@/lib/finance/auth-context";
 import { accountBook, subject } from "@/lib/finance/service";
 import type { GeneralLedgerRow, Subject } from "@/lib/finance/types";
 
-export default function GeneralLedgerPage() { const { currentAccountSet, currentPeriod } = useFinApp(); const [subjects, setSubjects] = useState<Subject[]>([]); const [subjectId, setSubjectId] = useState(""); const [year, setYear] = useState(currentPeriod.year); const [rows, setRows] = useState<GeneralLedgerRow[]>([]); useEffect(() => { if (currentAccountSet) subject.tree(currentAccountSet.id).then((items) => { setSubjects(items); setSubjectId(items[0]?.id || ""); }); }, [currentAccountSet]); useEffect(() => { if (currentAccountSet && subjectId) accountBook.generalLedger(currentAccountSet.id, subjectId, year).then(setRows); }, [currentAccountSet, subjectId, year]); return <div className="space-y-5"><div><h1 className="text-2xl font-semibold">总账</h1><p className="mt-1 text-sm text-slate-500">按月汇总科目期初、本期发生及期末余额</p></div><div className="flex flex-wrap gap-3 rounded-xl border bg-white p-4"><select value={year} onChange={(event) => setYear(Number(event.target.value))} className="rounded-md border px-3 text-sm">{Array.from({ length: 5 }, (_, index) => currentPeriod.year - index).map((item) => <option key={item}>{item}年</option>)}</select><div className="min-w-0 flex-1 sm:flex-none"><SubjectSelect subjects={subjects} value={subjectId} onChange={setSubjectId}/></div></div><div className="overflow-x-auto rounded-xl border bg-white"><table className="w-full min-w-[720px] text-sm"><thead className="bg-slate-50"><tr>{["期间", "摘要", "期初借方", "期初贷方", "本期借方", "本期贷方", "期末借方", "期末贷方"].map((title) => <th key={title} className="border-b px-3 py-3 text-right first:text-left first-of-type:text-left">{title}</th>)}</tr></thead><tbody>{rows.map((row) => <tr key={row.id} className={row.summary === "本期合计" ? "bg-sky-50/50" : ""}><td className="border-b px-3 py-3">{row.year}年第{row.month}期</td><td className="border-b px-3 py-3">{row.summary}</td>{[row.openingDebit, row.openingCredit, row.periodDebit, row.periodCredit, row.closingDebit, row.closingCredit].map((amount, index) => <td key={index} className="border-b px-3 py-3 text-right"><MoneyText value={amount}/></td>)}</tr>)}</tbody></table></div></div>; }
+function FilterBar({
+  year,
+  currentYear,
+  subjects,
+  subjectId,
+  onYearChange,
+  onSubjectChange,
+}: {
+  year: number;
+  currentYear: number;
+  subjects: Subject[];
+  subjectId: string;
+  onYearChange: (year: number) => void;
+  onSubjectChange: (value: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-3 rounded-xl border bg-white p-4">
+      <select
+        value={year}
+        onChange={(event) => onYearChange(Number(event.target.value))}
+        className="rounded-md border px-3 text-sm"
+      >
+        {Array.from({ length: 5 }, (_, index) => currentYear - index).map(
+          (item) => (
+            <option key={item}>{item}年</option>
+          ),
+        )}
+      </select>
+      <div className="min-w-0 flex-1 sm:flex-none">
+        <SubjectSelect
+          subjects={subjects}
+          value={subjectId}
+          onChange={onSubjectChange}
+        />
+      </div>
+    </div>
+  );
+}
+
+function GeneralLedgerTable({ rows }: { rows: GeneralLedgerRow[] }) {
+  return (
+    <div className="overflow-x-auto rounded-xl border bg-white">
+      <table className="w-full min-w-[720px] text-sm">
+        <thead className="bg-slate-50">
+          <tr>
+            {[
+              "期间",
+              "摘要",
+              "期初借方",
+              "期初贷方",
+              "本期借方",
+              "本期贷方",
+              "期末借方",
+              "期末贷方",
+            ].map((title) => (
+              <th
+                key={title}
+                className="border-b px-3 py-3 text-right first:text-left first-of-type:text-left"
+              >
+                {title}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr
+              key={row.id}
+              className={row.summary === "本期合计" ? "bg-sky-50/50" : ""}
+            >
+              <td className="border-b px-3 py-3">
+                {row.year}年第{row.month}期
+              </td>
+              <td className="border-b px-3 py-3">{row.summary}</td>
+              {[
+                row.openingDebit,
+                row.openingCredit,
+                row.periodDebit,
+                row.periodCredit,
+                row.closingDebit,
+                row.closingCredit,
+              ].map((amount, index) => (
+                <td key={index} className="border-b px-3 py-3 text-right">
+                  <MoneyText value={amount} />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export default function GeneralLedgerPage() {
+  const { currentAccountSet, currentPeriod } = useFinApp();
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [subjectId, setSubjectId] = useState("");
+  const [year, setYear] = useState(currentPeriod.year);
+  const [rows, setRows] = useState<GeneralLedgerRow[]>([]);
+
+  useEffect(() => {
+    if (currentAccountSet) {
+      subject.tree(currentAccountSet.id).then((items) => {
+        setSubjects(items);
+        setSubjectId(items[0]?.id || "");
+      });
+    }
+  }, [currentAccountSet]);
+
+  useEffect(() => {
+    if (currentAccountSet && subjectId)
+      accountBook
+        .generalLedger(currentAccountSet.id, subjectId, year)
+        .then(setRows);
+  }, [currentAccountSet, subjectId, year]);
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-semibold">总账</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          按月汇总科目期初、本期发生及期末余额
+        </p>
+      </div>
+      <FilterBar
+        year={year}
+        currentYear={currentPeriod.year}
+        subjects={subjects}
+        subjectId={subjectId}
+        onYearChange={setYear}
+        onSubjectChange={setSubjectId}
+      />
+      <GeneralLedgerTable rows={rows} />
+    </div>
+  );
+}

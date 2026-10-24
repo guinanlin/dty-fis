@@ -1,8 +1,132 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { MoneyText } from "@/components/finance/MoneyText";
 import { useFinApp } from "@/lib/finance/auth-context";
 import { accountBook, assistCategory } from "@/lib/finance/service";
 import type { AssistBalanceRow, AssistingCategory } from "@/lib/finance/types";
 
-export default function AuxiliaryBalancePage() { const {currentAccountSet,currentPeriod}=useFinApp(); const [categories,setCategories]=useState<AssistingCategory[]>([]); const [categoryId,setCategoryId]=useState(""); const [rows,setRows]=useState<AssistBalanceRow[]>([]); useEffect(()=>{if(currentAccountSet) assistCategory.list(currentAccountSet.id).then((items)=>{setCategories(items);setCategoryId(items[0]?.id||"");});},[currentAccountSet]); useEffect(()=>{if(currentAccountSet&&categoryId) accountBook.assistBalance(currentAccountSet.id,categoryId,currentPeriod.year,currentPeriod.month).then(setRows);},[categoryId,currentAccountSet,currentPeriod]); const name=categories.find((item)=>item.id===categoryId)?.name||"辅助项目"; return <div className="space-y-5"><div><h1 className="text-2xl font-semibold">核算项目余额</h1><p className="mt-1 text-sm text-slate-500">按辅助核算类别汇总余额</p></div><div className="rounded-xl border bg-white p-4"><label className="text-sm">辅助类别：<select value={categoryId} onChange={(event)=>setCategoryId(event.target.value)} className="ml-2 rounded border px-3 py-2">{categories.map((item)=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div><div className="overflow-x-auto rounded-xl border bg-white"><table className="w-full min-w-[760px] text-sm"><thead className="bg-slate-50"><tr><th className="p-3 text-left">{name}编码</th><th className="p-3 text-left">{name}名称</th><th className="p-3 text-right">期初借方</th><th className="p-3 text-right">期初贷方</th><th className="p-3 text-right">本期借方</th><th className="p-3 text-right">本期贷方</th><th className="p-3 text-right">期末借方</th><th className="p-3 text-right">期末贷方</th></tr></thead><tbody>{rows.map((row)=><tr key={row.id}>{[row.assistCode,row.assistName].map((value)=><td key={value} className="border-t p-3">{value}</td>)}{[row.openingDebit,row.openingCredit,row.periodDebit,row.periodCredit,row.closingDebit,row.closingCredit].map((value,index)=><td key={index} className="border-t p-3 text-right"><MoneyText value={value}/></td>)}</tr>)}</tbody></table></div></div>; }
+function FilterBar({
+  categories,
+  categoryId,
+  onChange,
+}: {
+  categories: AssistingCategory[];
+  categoryId: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="rounded-xl border bg-white p-4">
+      <label className="text-sm">
+        辅助类别：
+        <select
+          value={categoryId}
+          onChange={(event) => onChange(event.target.value)}
+          className="ml-2 rounded border px-3 py-2"
+        >
+          {categories.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+  );
+}
+
+function AuxiliaryBalanceTable({
+  rows,
+  name,
+}: {
+  rows: AssistBalanceRow[];
+  name: string;
+}) {
+  return (
+    <div className="overflow-x-auto rounded-xl border bg-white">
+      <table className="w-full min-w-[760px] text-sm">
+        <thead className="bg-slate-50">
+          <tr>
+            <th className="p-3 text-left">{name}编码</th>
+            <th className="p-3 text-left">{name}名称</th>
+            <th className="p-3 text-right">期初借方</th>
+            <th className="p-3 text-right">期初贷方</th>
+            <th className="p-3 text-right">本期借方</th>
+            <th className="p-3 text-right">本期贷方</th>
+            <th className="p-3 text-right">期末借方</th>
+            <th className="p-3 text-right">期末贷方</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.id}>
+              {[row.assistCode, row.assistName].map((value) => (
+                <td key={value} className="border-t p-3">
+                  {value}
+                </td>
+              ))}
+              {[
+                row.openingDebit,
+                row.openingCredit,
+                row.periodDebit,
+                row.periodCredit,
+                row.closingDebit,
+                row.closingCredit,
+              ].map((value, index) => (
+                <td key={index} className="border-t p-3 text-right">
+                  <MoneyText value={value} />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export default function AuxiliaryBalancePage() {
+  const { currentAccountSet, currentPeriod } = useFinApp();
+  const [categories, setCategories] = useState<AssistingCategory[]>([]);
+  const [categoryId, setCategoryId] = useState("");
+  const [rows, setRows] = useState<AssistBalanceRow[]>([]);
+
+  useEffect(() => {
+    if (currentAccountSet) {
+      assistCategory.list(currentAccountSet.id).then((items) => {
+        setCategories(items);
+        setCategoryId(items[0]?.id || "");
+      });
+    }
+  }, [currentAccountSet]);
+
+  useEffect(() => {
+    if (currentAccountSet && categoryId)
+      accountBook
+        .assistBalance(
+          currentAccountSet.id,
+          categoryId,
+          currentPeriod.year,
+          currentPeriod.month,
+        )
+        .then(setRows);
+  }, [categoryId, currentAccountSet, currentPeriod]);
+
+  const name =
+    categories.find((item) => item.id === categoryId)?.name || "辅助项目";
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-semibold">核算项目余额</h1>
+        <p className="mt-1 text-sm text-slate-500">按辅助核算类别汇总余额</p>
+      </div>
+      <FilterBar
+        categories={categories}
+        categoryId={categoryId}
+        onChange={setCategoryId}
+      />
+      <AuxiliaryBalanceTable rows={rows} name={name} />
+    </div>
+  );
+}
