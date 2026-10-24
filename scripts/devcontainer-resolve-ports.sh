@@ -4,7 +4,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$ROOT/.devcontainer/.env"
-COMPOSE_PROJECT="${COMPOSE_PROJECT:-dty-app-dev}"
+COMPOSE_PROJECT="${COMPOSE_PROJECT:-dty-fis}"
 LEGACY_COMPOSE_PROJECT="${LEGACY_COMPOSE_PROJECT:-nextjs-fastapi-template-dev}"
 
 is_port_free() {
@@ -56,11 +56,11 @@ find_free_port() {
 }
 
 load_env() {
-  FRONTEND_PORT="${FRONTEND_PORT:-3010}"
-  BACKEND_PORT="${BACKEND_PORT:-8010}"
-  BACKEND_OSS_GATEWAY_PORT="${BACKEND_OSS_GATEWAY_PORT:-8020}"
-  POSTGRES_PORT="${POSTGRES_PORT:-5442}"
-  POSTGRES_TEST_PORT="${POSTGRES_TEST_PORT:-5443}"
+  FRONTEND_PORT="${FRONTEND_PORT:-3656}"
+  BACKEND_PORT="${BACKEND_PORT:-8656}"
+  BACKEND_OSS_GATEWAY_PORT="${BACKEND_OSS_GATEWAY_PORT:-8657}"
+  POSTGRES_PORT="${POSTGRES_PORT:-8658}"
+  POSTGRES_TEST_PORT="${POSTGRES_TEST_PORT:-8659}"
   if [[ -f "$ENV_FILE" ]]; then
     # shellcheck source=/dev/null
     source "$ENV_FILE"
