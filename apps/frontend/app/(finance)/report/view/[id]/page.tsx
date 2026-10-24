@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Download, Printer } from "lucide-react";
@@ -8,5 +9,125 @@ import { useFinApp } from "@/lib/finance/auth-context";
 import { report } from "@/lib/finance/service";
 import type { ReportRow } from "@/lib/finance/types";
 
-const names:Record<string,string>={"1":"资产负债表","2":"利润表","3":"现金流量表","4":"所有者权益变动表"};
-export default function ReportViewPage(){const {id}=useParams<{id:string}>();const search=useSearchParams();const router=useRouter();const {currentAccountSet,currentPeriod}=useFinApp();const year=Number(search.get("year")||currentPeriod.year);const month=Number(search.get("month")||currentPeriod.month);const [rows,setRows]=useState<ReportRow[]>([]);useEffect(()=>{if(currentAccountSet)report.data(Number(id),currentAccountSet.id,year,month).then(setRows);},[currentAccountSet,id,month,year]);return <div className="space-y-5"><div className="flex items-center justify-between"><div><Button variant="ghost" onClick={()=>router.push("/report")}><ArrowLeft size={16} className="mr-2"/>返回报表</Button><h1 className="mt-2 text-2xl font-semibold">{names[id]||"财务报表"}</h1><p className="mt-1 text-sm text-slate-500">{year}年第{month}期　单位：元</p></div><div className="flex flex-wrap gap-2"><Button variant="outline" onClick={()=>window.print()}><Printer size={16} className="mr-2"/>打印</Button><Button variant="outline" onClick={()=>alert("报表导出任务已生成（模拟）")}><Download size={16} className="mr-2"/>导出</Button></div></div><div className="overflow-x-auto rounded-xl border bg-white"><table className="w-full min-w-[640px] text-sm"><thead className="bg-slate-50"><tr><th className="p-3 text-left">项目</th><th className="w-24 p-3 text-center">行次</th><th className="w-48 p-3 text-right">本期金额</th><th className="w-48 p-3 text-right">上期金额</th></tr></thead><tbody>{rows.map((row,index)=><><tr key={row.id} className={row.emphasis?"bg-slate-50 font-semibold":""}>{(index===0||rows[index-1].section!==row.section)&&<td colSpan={4} className="border-t bg-sky-50 px-3 py-2 font-semibold text-sky-700">{row.section}</td>}</tr><tr key={`${row.id}-data`} className={row.emphasis?"font-semibold":""}><td className="border-t px-3 py-3" style={{paddingLeft:`${12+row.level*14}px`}}>{row.lineName}</td><td className="border-t px-3 py-3 text-center">{row.lineCode}</td><td className="border-t px-3 py-3 text-right"><MoneyText value={row.periodAmount}/></td><td className="border-t px-3 py-3 text-right"><MoneyText value={row.priorAmount}/></td></tr></>)}</tbody></table></div></div>}
+const names: Record<string, string> = {
+  "1": "资产负债表",
+  "2": "利润表",
+  "3": "现金流量表",
+  "4": "所有者权益变动表",
+};
+
+function ReportTable({ rows }: { rows: ReportRow[] }) {
+  return (
+    <div className="overflow-x-auto rounded-xl border bg-white">
+      <table className="w-full min-w-[640px] text-sm">
+        <thead className="bg-slate-50">
+          <tr>
+            <th className="p-3 text-left">项目</th>
+            <th className="w-24 p-3 text-center">行次</th>
+            <th className="w-48 p-3 text-right">本期金额</th>
+            <th className="w-48 p-3 text-right">上期金额</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, index) => (
+            <ReportRowPair key={row.id} row={row} index={index} rows={rows} />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ReportRowPair({
+  row,
+  index,
+  rows,
+}: {
+  row: ReportRow;
+  index: number;
+  rows: ReportRow[];
+}) {
+  return (
+    <>
+      <tr
+        key={row.id}
+        className={row.emphasis ? "bg-slate-50 font-semibold" : ""}
+      >
+        {(index === 0 || rows[index - 1].section !== row.section) && (
+          <td
+            colSpan={4}
+            className="border-t bg-sky-50 px-3 py-2 font-semibold text-sky-700"
+          >
+            {row.section}
+          </td>
+        )}
+      </tr>
+      <tr
+        key={`${row.id}-data`}
+        className={row.emphasis ? "font-semibold" : ""}
+      >
+        <td
+          className="border-t px-3 py-3"
+          style={{ paddingLeft: `${12 + row.level * 14}px` }}
+        >
+          {row.lineName}
+        </td>
+        <td className="border-t px-3 py-3 text-center">{row.lineCode}</td>
+        <td className="border-t px-3 py-3 text-right">
+          <MoneyText value={row.periodAmount} />
+        </td>
+        <td className="border-t px-3 py-3 text-right">
+          <MoneyText value={row.priorAmount} />
+        </td>
+      </tr>
+    </>
+  );
+}
+
+export default function ReportViewPage() {
+  const { id } = useParams<{ id: string }>();
+  const search = useSearchParams();
+  const router = useRouter();
+  const { currentAccountSet, currentPeriod } = useFinApp();
+  const year = Number(search.get("year") || currentPeriod.year);
+  const month = Number(search.get("month") || currentPeriod.month);
+  const [rows, setRows] = useState<ReportRow[]>([]);
+
+  useEffect(() => {
+    if (currentAccountSet)
+      report.data(Number(id), currentAccountSet.id, year, month).then(setRows);
+  }, [currentAccountSet, id, month, year]);
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <Button variant="ghost" onClick={() => router.push("/report")}>
+            <ArrowLeft size={16} className="mr-2" />
+            返回报表
+          </Button>
+          <h1 className="mt-2 text-2xl font-semibold">
+            {names[id] || "财务报表"}
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {year}年第{month}期　单位：元
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => window.print()}>
+            <Printer size={16} className="mr-2" />
+            打印
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => alert("报表导出任务已生成（模拟）")}
+          >
+            <Download size={16} className="mr-2" />
+            导出
+          </Button>
+        </div>
+      </div>
+      <ReportTable rows={rows} />
+    </div>
+  );
+}

@@ -1,12 +1,156 @@
 "use client";
+
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { FileBarChart, RefreshCw, Settings2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { FinTable, type FinColumn } from "@/components/finance/FinTable";
 import { useFinApp } from "@/lib/finance/auth-context";
 import { report } from "@/lib/finance/service";
 import type { ReportListItem } from "@/lib/finance/types";
 
-export default function ReportListPage() { const {currentAccountSet,currentPeriod}=useFinApp(); const [period,setPeriod]=useState(currentPeriod); const [rows,setRows]=useState<ReportListItem[]>([]); const load=useCallback(()=>{if(currentAccountSet) report.list(currentAccountSet.id,period.year,period.month).then(setRows);},[currentAccountSet,period]); useEffect(load,[load]); const columns:FinColumn<ReportListItem>[]=[{key:"name",title:"报表名称",render:(row)=><span className="flex items-center gap-2 font-medium"><FileBarChart size={17} className="text-sky-600"/>{row.name}</span>},{key:"period",title:"会计期间",render:(row)=>`${row.year}年第${row.month}期`},{key:"status",title:"状态",render:(row)=><Badge variant={row.status==="已生成"?"default":"secondary"}>{row.status}</Badge>},{key:"time",title:"生成时间",render:(row)=>row.generatedAt?.slice(0,19).replace("T"," ")||"—"},{key:"actions",title:"操作",render:(row)=><div className="flex gap-2">{row.status==="已生成"&&<Button asChild size="sm" variant="outline"><Link href={`/report/view/${row.reportId}?year=${period.year}&month=${period.month}`}>查看</Link></Button>}<Button size="sm" onClick={async()=>{if(!currentAccountSet)return;await report.generate(row.reportId,currentAccountSet.id,period.year,period.month);load();}}><RefreshCw size={14} className="mr-1"/>{row.status==="已生成"?"重新生成":"生成"}</Button></div>}]; return <div className="space-y-5"><div className="flex items-center justify-between"><div><h1 className="text-2xl font-semibold">财务报表</h1><p className="mt-1 text-sm text-slate-500">按期间生成并查看标准财务报表</p></div><Button asChild variant="outline"><Link href="/report/template"><Settings2 size={16} className="mr-2"/>报表模板</Link></Button></div><div className="flex flex-wrap gap-3 rounded-xl border bg-white p-4"><select value={period.year} onChange={(event)=>setPeriod({...period,year:Number(event.target.value)})} className="rounded border px-3">{Array.from({length:5},(_,index)=>currentPeriod.year-index).map((year)=><option key={year}>{year}年</option>)}</select><select value={period.month} onChange={(event)=>setPeriod({...period,month:Number(event.target.value)})} className="rounded border px-3">{Array.from({length:12},(_,index)=>index+1).map((month)=><option key={month} value={month}>第{month}期</option>)}</select></div><FinTable columns={columns} data={rows}/></div>; }
+function PeriodFilter({
+  period,
+  currentYear,
+  onChange,
+}: {
+  period: { year: number; month: number };
+  currentYear: number;
+  onChange: (period: { year: number; month: number }) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-3 rounded-xl border bg-white p-4">
+      <select
+        value={period.year}
+        onChange={(event) =>
+          onChange({ ...period, year: Number(event.target.value) })
+        }
+        className="rounded border px-3"
+      >
+        {Array.from({ length: 5 }, (_, index) => currentYear - index).map(
+          (year) => (
+            <option key={year}>{year}年</option>
+          ),
+        )}
+      </select>
+      <select
+        value={period.month}
+        onChange={(event) =>
+          onChange({ ...period, month: Number(event.target.value) })
+        }
+        className="rounded border px-3"
+      >
+        {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => (
+          <option key={month} value={month}>
+            第{month}期
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+export default function ReportListPage() {
+  const { currentAccountSet, currentPeriod } = useFinApp();
+  const [period, setPeriod] = useState(currentPeriod);
+  const [rows, setRows] = useState<ReportListItem[]>([]);
+
+  const load = useCallback(() => {
+    if (currentAccountSet)
+      report
+        .list(currentAccountSet.id, period.year, period.month)
+        .then(setRows);
+  }, [currentAccountSet, period]);
+
+  useEffect(load, [load]);
+
+  const handleGenerate = async (row: ReportListItem) => {
+    if (!currentAccountSet) return;
+    await report.generate(
+      row.reportId,
+      currentAccountSet.id,
+      period.year,
+      period.month,
+    );
+    load();
+  };
+
+  const columns: FinColumn<ReportListItem>[] = [
+    {
+      key: "name",
+      title: "报表名称",
+      render: (row) => (
+        <span className="flex items-center gap-2 font-medium">
+          <FileBarChart size={17} className="text-sky-600" />
+          {row.name}
+        </span>
+      ),
+    },
+    {
+      key: "period",
+      title: "会计期间",
+      render: (row) => `${row.year}年第${row.month}期`,
+    },
+    {
+      key: "status",
+      title: "状态",
+      render: (row) => (
+        <Badge variant={row.status === "已生成" ? "default" : "secondary"}>
+          {row.status}
+        </Badge>
+      ),
+    },
+    {
+      key: "time",
+      title: "生成时间",
+      render: (row) => row.generatedAt?.slice(0, 19).replace("T", " ") || "—",
+    },
+    {
+      key: "actions",
+      title: "操作",
+      render: (row) => (
+        <div className="flex gap-2">
+          {row.status === "已生成" && (
+            <Button asChild size="sm" variant="outline">
+              <Link
+                href={`/report/view/${row.reportId}?year=${period.year}&month=${period.month}`}
+              >
+                查看
+              </Link>
+            </Button>
+          )}
+          <Button size="sm" onClick={() => void handleGenerate(row)}>
+            <RefreshCw size={14} className="mr-1" />
+            {row.status === "已生成" ? "重新生成" : "生成"}
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">财务报表</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            按期间生成并查看标准财务报表
+          </p>
+        </div>
+        <Button asChild variant="outline">
+          <Link href="/report/template">
+            <Settings2 size={16} className="mr-2" />
+            报表模板
+          </Link>
+        </Button>
+      </div>
+      <PeriodFilter
+        period={period}
+        currentYear={currentPeriod.year}
+        onChange={setPeriod}
+      />
+      <FinTable columns={columns} data={rows} />
+    </div>
+  );
+}
