@@ -22,7 +22,7 @@ interface FinAppContextValue {
   updateCurrentUser: (user: User) => void;
 }
 
-const storageKey = "fxy-finance-session";
+const storageKey = "ty-finance-session";
 const initialPeriod = { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
 const FinAppContext = createContext<FinAppContextValue | null>(null);
 

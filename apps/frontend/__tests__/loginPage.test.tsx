@@ -39,7 +39,7 @@ describe("Login Page", () => {
     expect(screen.getByRole("button", { name: /^登录$/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "账号密码登录" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "短信验证码登录" })).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "纷析云财务云端工作台插画" })).toHaveAttribute(
+    expect(screen.getByRole("img", { name: "汤圆财务云端工作台插画" })).toHaveAttribute(
       "src",
       "/images/login-illustration.webp",
     );

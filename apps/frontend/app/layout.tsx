@@ -3,7 +3,7 @@ import "./globals.css";
 import { FinAppProvider } from "@/lib/finance/auth-context";
 
 export const metadata: Metadata = {
-  title: "纷析云财税",
+  title: "汤圆财税",
   description: "让每个决策都有数据支撑",
 };
 

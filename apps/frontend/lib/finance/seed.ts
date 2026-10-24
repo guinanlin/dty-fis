@@ -21,9 +21,9 @@ const now = new Date();
 export const currentPeriod = { year: now.getFullYear(), month: now.getMonth() + 1 };
 
 export const users: User[] = [
-  { id: "u1", username: "admin", password: "123456", realName: "管理员", mobile: "13800000001", email: "admin@fxy.local" },
-  { id: "u2", username: "张三", password: "123456", realName: "张三", mobile: "13800000002", email: "zhangsan@fxy.local" },
-  { id: "u3", username: "李四", password: "123456", realName: "李四", mobile: "13800000003", email: "lisi@fxy.local" },
+  { id: "u1", username: "admin", password: "123456", realName: "管理员", mobile: "13800000001", email: "admin@ty.local" },
+  { id: "u2", username: "张三", password: "123456", realName: "张三", mobile: "13800000002", email: "zhangsan@ty.local" },
+  { id: "u3", username: "李四", password: "123456", realName: "李四", mobile: "13800000003", email: "lisi@ty.local" },
 ];
 
 export const accountSets: AccountSet[] = [

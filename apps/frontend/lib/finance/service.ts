@@ -171,7 +171,7 @@ export const userSettings = {
   updateProfile: async (userId: string, patch: Pick<User, "realName" | "email"> & { avatarUrl?: string }) => { const user = users.find((item) => item.id === userId); if (!user) throw new Error("用户不存在"); Object.assign(user, patch); return wait({ ...user, password: "" }); },
   changePassword: async (userId: string, oldPassword: string, newPassword: string) => { const user = users.find((item) => item.id === userId); if (!user || user.password !== oldPassword) throw new Error("原密码不正确"); user.password = newPassword; return wait(true); },
   changePhone: async (userId: string, mobile: string, code: string) => { if (!/^\d{6}$/.test(code)) throw new Error("请输入6位短信验证码"); const user = users.find((item) => item.id === userId); if (!user) throw new Error("用户不存在"); user.mobile = mobile; return wait(true); },
-  bindWechat: (userId: string) => wait({ userId, bound: true, nickname: "纷析云用户" }),
+  bindWechat: (userId: string) => wait({ userId, bound: true, nickname: "汤圆用户" }),
 };
 
 export const voucherTemplateService = {
