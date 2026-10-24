@@ -118,7 +118,7 @@ describe("FinanceShell menu highlight", () => {
   });
 
   it("reopens a collapsed group when the pathname enters that group", () => {
-    mockNav.pathname = "/dashboard";
+    mockNav.pathname = "/voucher";
     const view = render(<FinanceShell><div>content</div></FinanceShell>);
     const nav = screen.getByRole("navigation");
     fireEvent.click(within(nav).getByRole("button", { name: /^凭证$/ }));
@@ -130,5 +130,44 @@ describe("FinanceShell menu highlight", () => {
     const active = highlightedLinks(nextNav);
     expect(active).toHaveLength(1);
     expect(active[0]).toHaveAccessibleName("凭证列表");
+  });
+
+  it("starts with all groups collapsed on a standalone page", () => {
+    mockNav.pathname = "/dashboard";
+    render(<FinanceShell><div>content</div></FinanceShell>);
+    const nav = screen.getByRole("navigation");
+    expect(within(nav).queryByRole("link", { name: /^凭证列表$/ })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: /^明细账$/ })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: /^账套$/ })).not.toBeInTheDocument();
+  });
+
+  it("opens only the current-route group", () => {
+    mockNav.pathname = "/voucher";
+    render(<FinanceShell><div>content</div></FinanceShell>);
+    const nav = screen.getByRole("navigation");
+    expect(within(nav).getByRole("link", { name: /^凭证列表$/ })).toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: /^明细账$/ })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: /^账套$/ })).not.toBeInTheDocument();
+    expect(litGroups(nav)).toEqual(["凭证"]);
+  });
+
+  it("uses accordion behavior for manual toggles", () => {
+    mockNav.pathname = "/voucher";
+    render(<FinanceShell><div>content</div></FinanceShell>);
+    const nav = screen.getByRole("navigation");
+    fireEvent.click(within(nav).getByRole("button", { name: /^设置$/ }));
+    expect(within(nav).getByRole("link", { name: /^账套$/ })).toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: /^凭证列表$/ })).not.toBeInTheDocument();
+  });
+
+  it("collapses all groups when navigating to a standalone page", () => {
+    mockNav.pathname = "/account";
+    const view = render(<FinanceShell><div>content</div></FinanceShell>);
+    mockNav.pathname = "/report";
+    view.rerender(<FinanceShell><div>content</div></FinanceShell>);
+    const nav = screen.getByRole("navigation");
+    expect(within(nav).queryByRole("link", { name: /^凭证列表$/ })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: /^明细账$/ })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: /^账套$/ })).not.toBeInTheDocument();
   });
 });
