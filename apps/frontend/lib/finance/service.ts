@@ -37,7 +37,6 @@ import type {
   SubjectBalanceRow,
   SubjectSummaryRow,
   Subject,
-  User,
   Voucher,
   VoucherInput,
   VoucherQuery,
@@ -50,11 +49,11 @@ import type {
   TaxBurdenResult,
   AssetCategory,
   AssetCard,
-  AssetChangeRecord,
   DepreciationDetailRow,
   DepreciationSummaryRow,
   DepreciationVoucherItem,
 } from "./types";
+import { nextAssetCode } from "./asset-form";
 
 const wait = <T>(value: T, delay = 140) =>
   new Promise<T>((resolve) => setTimeout(() => resolve(value), delay));
@@ -469,6 +468,12 @@ export const asset = {
     },
   },
   cards: {
+    maxCode: async (accountSetId: string) =>
+      nextAssetCode(
+        assetCards
+          .filter((x) => x.accountSetId === accountSetId)
+          .map((x) => x.code),
+      ),
     list: (
       accountSetId: string,
       filters: {
@@ -526,6 +531,49 @@ export const asset = {
           x.impairmentProvision,
       );
       return wait(upsert(assetCards, x));
+    },
+    create: async (
+      input: Omit<
+        AssetCard,
+        | "id"
+        | "entryPeriod"
+        | "residualValue"
+        | "netValue"
+        | "endingAccumulatedDepreciation"
+        | "depreciationExpenseSubject"
+        | "status"
+        | "acquisitionMethod"
+      > & { year?: number; month?: number; expenseSubjectName?: string },
+    ) => {
+      const period = accountSets.find(
+        (x) => x.id === input.accountSetId,
+      )?.currentPeriod;
+      const originalValue = Number(input.originalValue) || 0;
+      const opening = Number(input.openingAccumulatedDepreciation) || 0;
+      const impairment = Number(input.impairmentProvision) || 0;
+      const code =
+        input.depreciationExpenseSubjectCode ??
+        expenseSubjectForDepartment(input.department);
+      const subjectName =
+        input.expenseSubjectName ??
+        subjects.find(
+          (x) => x.accountSetId === input.accountSetId && x.code === code,
+        )?.name ??
+        "折旧费用";
+      const card: AssetCard = {
+        ...input,
+        id: createId("asset"),
+        entryPeriod: `${input.year ?? period?.year ?? new Date().getFullYear()}-${String(input.month ?? period?.month ?? new Date().getMonth() + 1).padStart(2, "0")}`,
+        endingAccumulatedDepreciation: opening,
+        residualValue: round2(
+          (originalValue * (Number(input.residualRate) || 0)) / 100,
+        ),
+        netValue: round2(originalValue - opening - impairment),
+        depreciationExpenseSubject: `${code} ${subjectName}`,
+        status: "使用中",
+        acquisitionMethod: "购入",
+      };
+      return wait(upsert(assetCards, card));
     },
     delete: async (id: string) => {
       const x = assetCards.find((y) => y.id === id);

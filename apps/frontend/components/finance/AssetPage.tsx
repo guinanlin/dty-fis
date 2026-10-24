@@ -8,6 +8,7 @@ import DepreciationVouchersPage from "@/components/finance/DepreciationVouchersP
 import DepreciationDetailPage from "@/components/finance/DepreciationDetailPage";
 import DepreciationSummaryPage from "@/components/finance/DepreciationSummaryPage";
 import AssetCategoriesPage from "@/components/finance/AssetCategoriesPage";
+import { useRouter } from "next/navigation";
 
 export default function AssetPage({
   mode,
@@ -23,6 +24,7 @@ export default function AssetPage({
 
 function AssetCardsView({ mode }: { mode: "cards" | "changes" }) {
   const { currentAccountSet, currentPeriod } = useFinApp();
+  const router = useRouter();
   const [rows, setRows] = useState<Array<AssetCard | AssetChangeRecord>>([]);
   const [message, setMessage] = useState("");
   useEffect(() => {
@@ -54,9 +56,7 @@ function AssetCardsView({ mode }: { mode: "cards" | "changes" }) {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setMessage("操作已完成（原型提示）")}>
-            新增
-          </Button>
+          <Button onClick={() => router.push("/asset/cards/new")}>新增</Button>
           <Button
             variant="outline"
             onClick={() => setMessage("导出任务已生成（模拟）")}

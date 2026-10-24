@@ -43,6 +43,20 @@ export interface AssetCard {
   acquisitionMethod: "购入" | "自建" | "投资投入" | "盘盈";
   location: string;
   remark?: string;
+  quantity?: number;
+  model?: string;
+  user?: string;
+  taxAmount?: number;
+  residualRate?: number;
+  depreciationMethod?: AssetDepreciationMethod | "none";
+  fixedAssetSubjectCode?: string;
+  purchaseCounterpartSubjectCode?: string;
+  taxSubjectCode?: string;
+  accumulatedDepreciationSubjectCode?: string;
+  depreciationExpenseSubjectCode?: string;
+  disposalSubjectCode?: string;
+  impairmentSubjectCode?: string;
+  impairmentCounterpartSubjectCode?: string;
 }
 export interface AssetChangeRecord {
   id: string;
