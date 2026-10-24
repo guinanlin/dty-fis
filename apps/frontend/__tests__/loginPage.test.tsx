@@ -41,7 +41,7 @@ describe("Login Page", () => {
     expect(screen.getByRole("button", { name: "短信验证码登录" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "汤圆财务云端工作台插画" })).toHaveAttribute(
       "src",
-      "/images/login-illustration.webp",
+      "https://pic1.imgdb.cn/i/034lQE1QxMipj7qhLJZy5f.jpg",
     );
     expect(screen.getByRole("heading", { name: /让每个决策/ })).toBeInTheDocument();
   });
