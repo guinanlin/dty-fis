@@ -19,12 +19,20 @@ function prefixMatch(pathname: string, match: string) {
 }
 
 function childMatches(pathname: string, child: FinanceMenuChild) {
-  return boundaryMatch(pathname, child.href) || (child.match !== undefined && prefixMatch(pathname, child.match));
+  return (
+    boundaryMatch(pathname, child.href) ||
+    (child.match !== undefined && prefixMatch(pathname, child.match))
+  );
 }
 
-export function resolveActiveMenu(pathname: string, item: FinanceMenuItem): ActiveMenu {
+export function resolveActiveMenu(
+  pathname: string,
+  item: FinanceMenuItem,
+): ActiveMenu {
   if (item.href) {
-    const active = boundaryMatch(pathname, item.href) || (item.match !== undefined && prefixMatch(pathname, item.match));
+    const active =
+      boundaryMatch(pathname, item.href) ||
+      (item.match !== undefined && prefixMatch(pathname, item.match));
     return { active, activeChildHref: null };
   }
 
@@ -35,6 +43,8 @@ export function resolveActiveMenu(pathname: string, item: FinanceMenuItem): Acti
   const matching = children.filter((child) => childMatches(pathname, child));
   if (matching.length === 0) return { active: false, activeChildHref: null };
 
-  const shallowest = matching.reduce((best, child) => (child.href.length < best.href.length ? child : best));
+  const shallowest = matching.reduce((best, child) =>
+    child.href.length < best.href.length ? child : best,
+  );
   return { active: true, activeChildHref: shallowest.href };
 }

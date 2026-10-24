@@ -3,10 +3,59 @@ export type BalanceDirection = "借" | "贷";
 export type VoucherStatus = "draft" | "audited" | "posted" | "void";
 export type CheckStatus = "open" | "closed";
 
-export type AssetDepreciationMethod = "average" | "workload" | "double-declining" | "sum-of-years";
-export interface AssetCategory { id: string; accountSetId: string; code: string; name: string; depreciationMethod: AssetDepreciationMethod; usefulLifeMonths: number; residualRate: number; fixedAssetSubjectCode: string; accumulatedDepreciationSubjectCode: string; remark?: string; }
-export interface AssetCard { id: string; accountSetId: string; code: string; name: string; categoryCode: string; department: string; startUseDate: string; entryPeriod: string; originalValue: number; openingAccumulatedDepreciation: number; endingAccumulatedDepreciation: number; monthlyDepreciation: number; usefulLifeMonths: number; depreciatedMonths: number; residualValue: number; impairmentProvision: number; netValue: number; depreciationExpenseSubject: string; status: "使用中" | "已清理"; acquisitionMethod: "购入" | "自建" | "投资投入" | "盘盈"; location: string; remark?: string; }
-export interface AssetChangeRecord { id: string; accountSetId: string; assetCode: string; assetName: string; changeItem: string; beforeValue: string; afterValue: string; period: string; modifier: string; changedAt: string; }
+export type AssetDepreciationMethod =
+  | "average"
+  | "workload"
+  | "double-declining"
+  | "sum-of-years";
+export interface AssetCategory {
+  id: string;
+  accountSetId: string;
+  code: string;
+  name: string;
+  depreciationMethod: AssetDepreciationMethod;
+  usefulLifeMonths: number;
+  residualRate: number;
+  fixedAssetSubjectCode: string;
+  accumulatedDepreciationSubjectCode: string;
+  remark?: string;
+}
+export interface AssetCard {
+  id: string;
+  accountSetId: string;
+  code: string;
+  name: string;
+  categoryCode: string;
+  department: string;
+  startUseDate: string;
+  entryPeriod: string;
+  originalValue: number;
+  openingAccumulatedDepreciation: number;
+  endingAccumulatedDepreciation: number;
+  monthlyDepreciation: number;
+  usefulLifeMonths: number;
+  depreciatedMonths: number;
+  residualValue: number;
+  impairmentProvision: number;
+  netValue: number;
+  depreciationExpenseSubject: string;
+  status: "使用中" | "已清理";
+  acquisitionMethod: "购入" | "自建" | "投资投入" | "盘盈";
+  location: string;
+  remark?: string;
+}
+export interface AssetChangeRecord {
+  id: string;
+  accountSetId: string;
+  assetCode: string;
+  assetName: string;
+  changeItem: string;
+  beforeValue: string;
+  afterValue: string;
+  period: string;
+  modifier: string;
+  changedAt: string;
+}
 
 export interface User {
   id: string;
@@ -93,10 +142,18 @@ export interface VoucherQuery {
   status?: VoucherStatus | "all";
 }
 
-export interface VoucherInput extends Omit<Voucher, "id" | "number" | "details"> {
+export interface VoucherInput extends Omit<
+  Voucher,
+  "id" | "number" | "details"
+> {
   id?: string;
   number?: number;
-  details: Array<Omit<VoucherDetail, "id" | "voucherId"> & { id?: string; voucherId?: string }>;
+  details: Array<
+    Omit<VoucherDetail, "id" | "voucherId"> & {
+      id?: string;
+      voucherId?: string;
+    }
+  >;
 }
 
 export interface Voucher {
@@ -254,7 +311,11 @@ export interface ReportTemplate {
   cells: ReportCell[];
 }
 
-export type ReportCategory = "资产负债表" | "利润表" | "现金流量表" | "所有者权益变动表";
+export type ReportCategory =
+  | "资产负债表"
+  | "利润表"
+  | "现金流量表"
+  | "所有者权益变动表";
 
 export interface ReportRow {
   id: string;
@@ -357,8 +418,71 @@ export interface CarryForwardItem {
 
 export type InvoiceTab = "output" | "input" | "receipt";
 export type InvoiceStatus = "正常" | "作废" | "红冲";
-export interface InvoiceLine { name: string; model: string; unit: string; quantity: number; price: number; amount: number; taxRate: number; tax: number; }
-export interface Invoice { id: string; accountSetId: string; tab: InvoiceTab; date: string; type: string; code: string; number: string; digitalNumber?: string; partner: string; amount: number; tax: number; total: number; status: InvoiceStatus; imageUrl?: string; templateId?: string; voucherId?: string; certification?: "未勾选" | "已勾选" | "已认证"; certificationPeriod?: string; lines: InvoiceLine[]; remark?: string; }
-export interface InvoiceTemplate { id: string; accountSetId: string; tab: InvoiceTab; name: string; isDefault: boolean; description: string; entries: Array<{ direction: BalanceDirection; subjectCode: string; subjectName: string; formula: "amount" | "tax" | "total"; }>; }
-export interface TaxBurdenInput { unbilled: number; deductions: number; otherOutput: number; otherInput: number; transferOut: number; unclaimedInput: number; openingCredit: number; relief: number; creditItems: number; customItems: number; targetRate: number; }
-export interface TaxBurdenResult { outputTax: number; inputTax: number; payable: number; endingCredit: number; rate: number; surcharge: number; salesAmount: number; }
+export interface InvoiceLine {
+  name: string;
+  model: string;
+  unit: string;
+  quantity: number;
+  price: number;
+  amount: number;
+  taxRate: number;
+  tax: number;
+}
+export interface Invoice {
+  id: string;
+  accountSetId: string;
+  tab: InvoiceTab;
+  date: string;
+  type: string;
+  code: string;
+  number: string;
+  digitalNumber?: string;
+  partner: string;
+  amount: number;
+  tax: number;
+  total: number;
+  status: InvoiceStatus;
+  imageUrl?: string;
+  templateId?: string;
+  voucherId?: string;
+  certification?: "未勾选" | "已勾选" | "已认证";
+  certificationPeriod?: string;
+  lines: InvoiceLine[];
+  remark?: string;
+}
+export interface InvoiceTemplate {
+  id: string;
+  accountSetId: string;
+  tab: InvoiceTab;
+  name: string;
+  isDefault: boolean;
+  description: string;
+  entries: Array<{
+    direction: BalanceDirection;
+    subjectCode: string;
+    subjectName: string;
+    formula: "amount" | "tax" | "total";
+  }>;
+}
+export interface TaxBurdenInput {
+  unbilled: number;
+  deductions: number;
+  otherOutput: number;
+  otherInput: number;
+  transferOut: number;
+  unclaimedInput: number;
+  openingCredit: number;
+  relief: number;
+  creditItems: number;
+  customItems: number;
+  targetRate: number;
+}
+export interface TaxBurdenResult {
+  outputTax: number;
+  inputTax: number;
+  payable: number;
+  endingCredit: number;
+  rate: number;
+  surcharge: number;
+  salesAmount: number;
+}
