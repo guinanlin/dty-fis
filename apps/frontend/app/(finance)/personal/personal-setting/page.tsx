@@ -5,17 +5,17 @@ import { PersonalCard } from "@/components/finance/PersonalCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFinApp } from "@/lib/finance/auth-context";
-import { userSettings } from "@/lib/finance/service";
+import { updateAvatar, updateProfile } from "@/components/actions/auth-action";
 
 export default function PersonalSettingPage() {
   const { currentUser, updateCurrentUser } = useFinApp();
-  const [form, setForm] = useState({ realName: "", email: "", avatarUrl: "" });
+  const [form, setForm] = useState({ nickname: "", email: "", avatarUrl: "" });
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (currentUser) {
       setForm({
-        realName: currentUser.realName,
+        nickname: currentUser.realName,
         email: currentUser.email,
         avatarUrl: currentUser.avatarUrl || "",
       });
@@ -28,8 +28,9 @@ export default function PersonalSettingPage() {
 
   const handleSave = async () => {
     if (!currentUser) return;
-    const user = await userSettings.updateProfile(currentUser.id, form);
-    updateCurrentUser(user);
+    const result = await updateProfile(form);
+    if (!result.ok) return setMessage(result.error);
+    if (result.user) updateCurrentUser({ ...currentUser, realName: result.user.nickname ?? form.nickname, email: result.user.email, avatarUrl: result.user.avatar_url ?? form.avatarUrl });
     setMessage("更新成功");
   };
 
@@ -37,7 +38,7 @@ export default function PersonalSettingPage() {
     <PersonalCard title="个人设置" subtitle="维护头像、邮箱和制单人姓名">
       <div className="mb-5 flex items-center gap-4">
         <div className="grid h-20 w-20 place-items-center rounded-full bg-sky-500 text-3xl text-white">
-          {form.realName.slice(0, 1) || "用"}
+          {form.nickname.slice(0, 1) || "用"}
         </div>
         <div>
           <p className="font-medium">账号：{currentUser?.username}</p>
@@ -58,14 +59,15 @@ export default function PersonalSettingPage() {
         />
         <Field
           label="姓名"
-          value={form.realName}
-          onChange={(value) => updateField("realName", value)}
+          value={form.nickname}
+          onChange={(value) => updateField("nickname", value)}
         />
         <p className="text-xs text-red-500">
           * 录入或审核凭证时，此姓名将作为制单人、审核人姓名。
         </p>
         {message && <p className="text-sm text-emerald-600">{message}</p>}
-        <Button onClick={handleSave}>保存</Button>
+        <input type="file" accept="image/*" onChange={async (event) => { const file = event.target.files?.[0]; if (!file) return; const data = new FormData(); data.set("file", file); const result = await updateAvatar(data); if (result.ok) setForm((value) => ({ ...value, avatarUrl: result.downloadUrl ?? value.avatarUrl })); else setMessage(result.error); }} />
+        <Button onClick={() => void handleSave()}>保存</Button>
       </div>
     </PersonalCard>
   );

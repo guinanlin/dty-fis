@@ -68,44 +68,6 @@ function upsert<T extends { id: string }>(items: T[], value: T) {
   return value;
 }
 
-export const auth = {
-  async login(username: string, password: string) {
-    const user = users.find(
-      (item) =>
-        (item.username === username ||
-          item.mobile === username ||
-          item.email === username) &&
-        item.password === password,
-    );
-    if (!user) throw new Error("账号或密码错误");
-    return wait({
-      token: `mock-token-${user.id}`,
-      user: { ...user, password: "" },
-    });
-  },
-  async register(input: Omit<User, "id">) {
-    if (
-      users.some(
-        (user) =>
-          user.username === input.username || user.mobile === input.mobile,
-      )
-    )
-      throw new Error("账号已存在");
-    const user = { ...input, id: createId("user") };
-    users.push(user);
-    return wait({ ...user, password: "" });
-  },
-  async resetPassword(username: string, password: string) {
-    const user = users.find(
-      (item) => item.username === username || item.mobile === username,
-    );
-    if (!user) throw new Error("未找到该用户");
-    user.password = password;
-    return wait(true);
-  },
-  logout: () => wait(true),
-};
-
 export const accountSet = {
   listByUser: (userId: string) =>
     wait(
@@ -1058,37 +1020,6 @@ export const permissionService = {
       permissions.push({ accountSetId, userId, role });
     return wait(true);
   },
-};
-
-export const userSettings = {
-  updateProfile: async (
-    userId: string,
-    patch: Pick<User, "realName" | "email"> & { avatarUrl?: string },
-  ) => {
-    const user = users.find((item) => item.id === userId);
-    if (!user) throw new Error("用户不存在");
-    Object.assign(user, patch);
-    return wait({ ...user, password: "" });
-  },
-  changePassword: async (
-    userId: string,
-    oldPassword: string,
-    newPassword: string,
-  ) => {
-    const user = users.find((item) => item.id === userId);
-    if (!user || user.password !== oldPassword) throw new Error("原密码不正确");
-    user.password = newPassword;
-    return wait(true);
-  },
-  changePhone: async (userId: string, mobile: string, code: string) => {
-    if (!/^\d{6}$/.test(code)) throw new Error("请输入6位短信验证码");
-    const user = users.find((item) => item.id === userId);
-    if (!user) throw new Error("用户不存在");
-    user.mobile = mobile;
-    return wait(true);
-  },
-  bindWechat: (userId: string) =>
-    wait({ userId, bound: true, nickname: "汤圆用户" }),
 };
 
 export const voucherTemplateService = {

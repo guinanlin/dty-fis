@@ -22,9 +22,12 @@ export const passwordResetConfirmSchema = z
   });
 
 export const registerSchema = z.object({
+  username: z.string().min(2, "用户名至少 2 个字符").max(64, "用户名不能超过 64 个字符"),
+  phone: z.string().regex(/^1\d{10}$/, "手机号格式不正确"),
   password: passwordSchema,
   email: z.string().email({ message: "邮箱地址无效" }),
-});
+  confirm: z.string(),
+}).refine((data) => data.password === data.confirm, { message: "两次输入的密码不一致", path: ["confirm"] });
 
 export const loginSchema = z.object({
   password: z.string().min(1, { message: "密码是必需的" }),

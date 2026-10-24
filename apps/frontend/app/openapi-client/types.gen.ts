@@ -5,13 +5,8 @@ export type BearerResponse = {
     token_type: string;
 };
 
-export type Body_auth_reset_forgot_password = {
-    email: string;
-};
-
-export type Body_auth_reset_reset_password = {
-    token: string;
-    password: string;
+export type BindWechatRequest = {
+    code?: (string | null);
 };
 
 export type Body_auth_verify_request_token = {
@@ -24,6 +19,16 @@ export type Body_auth_verify_verify = {
 
 export type Body_files_upload_file = {
     file: (Blob | File);
+};
+
+export type ChangePasswordRequest = {
+    old_password: string;
+    new_password: string;
+};
+
+export type ChangePhoneRequest = {
+    mobile: string;
+    code: string;
 };
 
 export type ErrorModel = {
@@ -45,6 +50,10 @@ export type FileUploadResponse = {
     mime_type: string;
     status: string;
     download_url: string;
+};
+
+export type ForgotPasswordRequest = {
+    account: string;
 };
 
 export type HTTPValidationError = {
@@ -74,12 +83,27 @@ export type login = {
     client_secret?: (string | null);
 };
 
+export type PhoneCodeRequest = {
+    mobile: string;
+};
+
+export type ResetPasswordRequest = {
+    token: string;
+    password: string;
+};
+
 export type UserCreate = {
     email: string;
     password: string;
     is_active?: (boolean | null);
     is_superuser?: (boolean | null);
     is_verified?: (boolean | null);
+    username: string;
+    /**
+     * 手机号格式不正确
+     */
+    phone: string;
+    nickname?: (string | null);
 };
 
 export type UserRead = {
@@ -88,6 +112,10 @@ export type UserRead = {
     is_active?: boolean;
     is_superuser?: boolean;
     is_verified?: boolean;
+    username: string;
+    phone?: (string | null);
+    nickname?: (string | null);
+    avatar_url?: (string | null);
 };
 
 export type UserUpdate = {
@@ -96,6 +124,8 @@ export type UserUpdate = {
     is_active?: (boolean | null);
     is_superuser?: (boolean | null);
     is_verified?: (boolean | null);
+    nickname?: (string | null);
+    avatar_url?: (string | null);
 };
 
 export type ValidationError = {
@@ -116,29 +146,29 @@ export type AuthJwtLogoutResponse = (unknown);
 
 export type AuthJwtLogoutError = (unknown);
 
-export type RegisterRegisterData = {
+export type RegisterData = {
     body: UserCreate;
 };
 
-export type RegisterRegisterResponse = (UserRead);
+export type RegisterResponse = (UserRead);
 
-export type RegisterRegisterError = (ErrorModel | HTTPValidationError);
+export type RegisterError = (HTTPValidationError);
 
-export type ResetForgotPasswordData = {
-    body: Body_auth_reset_forgot_password;
+export type ForgotPasswordData = {
+    body: ForgotPasswordRequest;
 };
 
-export type ResetForgotPasswordResponse = (unknown);
+export type ForgotPasswordResponse = (unknown);
 
-export type ResetForgotPasswordError = (HTTPValidationError);
+export type ForgotPasswordError = (HTTPValidationError);
 
-export type ResetResetPasswordData = {
-    body: Body_auth_reset_reset_password;
+export type ResetPasswordData = {
+    body: ResetPasswordRequest;
 };
 
-export type ResetResetPasswordResponse = (unknown);
+export type ResetPasswordResponse = (unknown);
 
-export type ResetResetPasswordError = (ErrorModel | HTTPValidationError);
+export type ResetPasswordError = (HTTPValidationError);
 
 export type VerifyRequestTokenData = {
     body: Body_auth_verify_request_token;
@@ -155,6 +185,38 @@ export type VerifyVerifyData = {
 export type VerifyVerifyResponse = (UserRead);
 
 export type VerifyVerifyError = (ErrorModel | HTTPValidationError);
+
+export type ChangePasswordData = {
+    body: ChangePasswordRequest;
+};
+
+export type ChangePasswordResponse = (unknown);
+
+export type ChangePasswordError = (HTTPValidationError);
+
+export type SendPhoneCodeData = {
+    body: PhoneCodeRequest;
+};
+
+export type SendPhoneCodeResponse = (unknown);
+
+export type SendPhoneCodeError = (HTTPValidationError);
+
+export type ChangePhoneData = {
+    body: ChangePhoneRequest;
+};
+
+export type ChangePhoneResponse = (UserRead);
+
+export type ChangePhoneError = (HTTPValidationError);
+
+export type BindWechatData = {
+    body?: (BindWechatRequest | null);
+};
+
+export type BindWechatResponse = (unknown);
+
+export type BindWechatError = (HTTPValidationError);
 
 export type UsersCurrentUserResponse = (UserRead);
 
