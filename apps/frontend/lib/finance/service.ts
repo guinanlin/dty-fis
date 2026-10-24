@@ -51,6 +51,9 @@ import type {
   AssetCategory,
   AssetCard,
   AssetChangeRecord,
+  DepreciationDetailRow,
+  DepreciationSummaryRow,
+  DepreciationVoucherItem,
 } from "./types";
 
 const wait = <T>(value: T, delay = 140) =>
@@ -112,6 +115,7 @@ export const accountSet = {
           ...accountSets.find((item) => item.id === permission.accountSetId)!,
           role: permission.role,
         })),
+      40,
     ),
   init: (id: string) =>
     wait(accountSets.find((item) => item.id === id) ?? null),
@@ -470,6 +474,20 @@ export const voucher = {
 };
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
+const expenseSubjectForDepartment = (department: string) =>
+  department === "运输部" || department === "仓储部" ? "6601" : "6602";
+const monthsInServiceThisYear = (
+  endYear: number,
+  endMonth: number,
+  start: string,
+) => {
+  const [startYear, startMonth] = start.slice(0, 7).split("-").map(Number);
+  if (startYear > endYear) return 0;
+  return Math.min(
+    12,
+    Math.max(0, endYear === startYear ? endMonth - startMonth + 1 : 12),
+  );
+};
 export const asset = {
   categories: {
     list: (accountSetId: string) =>
@@ -610,6 +628,234 @@ export const asset = {
         };
       },
     ),
+  depreciation: {
+    preview: async (accountSetId: string, year: number, month: number) => {
+      const cardRows = await asset.report(accountSetId, year, month);
+      const groups = new Map<string, number>();
+      cardRows.forEach((row) => {
+        if (row.currentDepreciation <= 0) return;
+        const code = expenseSubjectForDepartment(row.department);
+        groups.set(
+          code,
+          round2((groups.get(code) ?? 0) + row.currentDepreciation),
+        );
+      });
+      const voucherLines = [...groups.entries()].map(
+        ([subjectCode, debitAmount]) => {
+          const subject = subjects.find(
+            (item) =>
+              item.accountSetId === accountSetId && item.code === subjectCode,
+          )!;
+          return {
+            id: `${accountSetId}-${year}-${month}-${subjectCode}`,
+            summary: "计提固定资产折旧",
+            subjectCode,
+            subjectName: `${subject.name}-折旧`,
+            debitAmount,
+            creditAmount: 0,
+          };
+        },
+      );
+      const debitTotal = round2(
+        voucherLines.reduce((sum, item) => sum + item.debitAmount, 0),
+      );
+      const creditTotal = debitTotal;
+      const accumulated = subjects.find(
+        (item) => item.accountSetId === accountSetId && item.code === "1602",
+      )!;
+      voucherLines.push({
+        id: `${accountSetId}-${year}-${month}-1602`,
+        summary: "计提固定资产折旧",
+        subjectCode: "1602",
+        subjectName: accumulated.name,
+        debitAmount: 0,
+        creditAmount: creditTotal,
+      });
+      return {
+        cardRows,
+        voucherLines,
+        debitTotal,
+        creditTotal,
+        balanced: debitTotal === creditTotal,
+      };
+    },
+    vouchers: (accountSetId: string): DepreciationVoucherItem[] =>
+      vouchers
+        .filter(
+          (item) =>
+            item.accountSetId === accountSetId &&
+            item.remark?.startsWith("[资产折旧]") &&
+            item.status !== "void",
+        )
+        .map((item) => ({
+          id: item.id,
+          word: item.word,
+          number: item.number,
+          voucherWordLabel: `${item.word}-${item.number}`,
+          year: item.year,
+          month: item.month,
+          date: item.date,
+          summary:
+            item.details.find((detail) => detail.summary)?.summary ??
+            "计提固定资产折旧",
+          debitTotal: round2(
+            item.details.reduce((sum, detail) => sum + detail.debitAmount, 0),
+          ),
+          creditTotal: round2(
+            item.details.reduce((sum, detail) => sum + detail.creditAmount, 0),
+          ),
+          status: item.status,
+        }))
+        .sort(
+          (a, b) => b.year - a.year || b.month - a.month || b.number - a.number,
+        ),
+    detail: async (
+      accountSetId: string,
+      startYear: number,
+      startMonth: number,
+      endYear: number,
+      endMonth: number,
+      opts: {
+        byDepartment: boolean;
+        includeCleared: boolean;
+        showChanges: boolean;
+      },
+    ) => {
+      const cards = await asset.cards.list(accountSetId, {
+        includeCleared: true,
+      });
+      const requestedStartKey = startYear * 100 + startMonth;
+      const requestedEndKey = endYear * 100 + endMonth;
+      if (requestedStartKey > requestedEndKey) {
+        [startYear, endYear] = [endYear, startYear];
+        [startMonth, endMonth] = [endMonth, startMonth];
+      }
+      const endKey = endYear * 100 + endMonth;
+      const startKey = startYear * 100 + startMonth;
+      return cards
+        .filter((card) => opts.includeCleared || card.status !== "已清理")
+        .filter((card) => {
+          const cardKey = Number(
+            card.startUseDate.slice(0, 7).replace("-", ""),
+          );
+          return cardKey <= endKey && endKey >= startKey;
+        })
+        .map((card): DepreciationDetailRow => {
+          const currentDepreciation = asset.periodDepreciation(
+            card,
+            endYear,
+            endMonth,
+          );
+          const endingAccumulatedDepreciation = round2(
+            card.openingAccumulatedDepreciation + currentDepreciation,
+          );
+          const changes = assetChanges
+            .filter((change) => change.assetCode === card.code)
+            .map(
+              (change) =>
+                `${change.period} ${change.changeItem} ${change.beforeValue}→${change.afterValue}`,
+            );
+          return {
+            id: card.id,
+            code: card.code,
+            name: card.name,
+            categoryCode: card.categoryCode,
+            categoryName:
+              assetCategories.find(
+                (category) =>
+                  category.accountSetId === accountSetId &&
+                  category.code === card.categoryCode,
+              )?.name ?? card.categoryCode,
+            department: card.department,
+            originalValue: card.originalValue,
+            openingAccumulatedDepreciation: card.openingAccumulatedDepreciation,
+            currentDepreciation,
+            yearDepreciation: round2(
+              card.monthlyDepreciation *
+                monthsInServiceThisYear(endYear, endMonth, card.startUseDate),
+            ),
+            endingAccumulatedDepreciation,
+            impairmentProvision: card.impairmentProvision,
+            netValue: round2(
+              card.originalValue -
+                endingAccumulatedDepreciation -
+                card.impairmentProvision,
+            ),
+            status: card.status,
+            changeInfo: opts.showChanges ? changes.join("；") : undefined,
+          };
+        });
+    },
+    summary: async (accountSetId: string, year: number, month: number) => {
+      const cards = await asset.cards.list(accountSetId, {
+        includeCleared: true,
+      });
+      return assetCategories
+        .filter((category) => category.accountSetId === accountSetId)
+        .map((category): DepreciationSummaryRow => {
+          const rows = cards.filter(
+            (card) => card.categoryCode === category.code,
+          );
+          const added = rows.filter(
+            (card) =>
+              card.entryPeriod === `${year}-${String(month).padStart(2, "0")}`,
+          );
+          const openingOriginalValue = rows.reduce(
+            (sum, card) =>
+              sum +
+              card.originalValue -
+              (added.includes(card) ? card.originalValue : 0),
+            0,
+          );
+          const decreasedOriginalValue = rows
+            .filter((card) => card.status === "已清理")
+            .reduce((sum, card) => sum + card.originalValue, 0);
+          const openingAccumulatedDepreciation = rows.reduce(
+            (sum, card) => sum + card.openingAccumulatedDepreciation,
+            0,
+          );
+          const currentDepreciation = rows.reduce(
+            (sum, card) => sum + asset.periodDepreciation(card, year, month),
+            0,
+          );
+          const impairment = rows.reduce(
+            (sum, card) => sum + card.impairmentProvision,
+            0,
+          );
+          const endingOriginalValue = round2(
+            openingOriginalValue +
+              added.reduce((sum, card) => sum + card.originalValue, 0) -
+              decreasedOriginalValue,
+          );
+          const endingAccumulatedDepreciation = round2(
+            openingAccumulatedDepreciation + currentDepreciation,
+          );
+          return {
+            categoryCode: category.code,
+            categoryName: category.name,
+            openingOriginalValue: round2(openingOriginalValue),
+            addedOriginalValue: round2(
+              added.reduce((sum, card) => sum + card.originalValue, 0),
+            ),
+            decreasedOriginalValue: round2(decreasedOriginalValue),
+            endingOriginalValue,
+            openingAccumulatedDepreciation: round2(
+              openingAccumulatedDepreciation,
+            ),
+            currentDepreciation: round2(currentDepreciation),
+            endingAccumulatedDepreciation,
+            openingNetValue: round2(
+              openingOriginalValue -
+                openingAccumulatedDepreciation -
+                impairment,
+            ),
+            endingNetValue: round2(
+              endingOriginalValue - endingAccumulatedDepreciation - impairment,
+            ),
+          };
+        });
+    },
+  },
   generateDepreciationVoucher: async (
     accountSetId: string,
     year: number,
@@ -630,9 +876,9 @@ export const asset = {
     rows.forEach((row) => {
       if (row.currentDepreciation > 0)
         groups.set(
-          row.depreciationExpenseSubject,
+          expenseSubjectForDepartment(row.department),
           round2(
-            (groups.get(row.depreciationExpenseSubject) ?? 0) +
+            (groups.get(expenseSubjectForDepartment(row.department)) ?? 0) +
               row.currentDepreciation,
           ),
         );
@@ -644,28 +890,25 @@ export const asset = {
     const depreciation = subjects.find(
       (x) => x.accountSetId === accountSetId && x.code === "1602",
     )!;
-    const details = [...groups.entries()].map(
-      ([subjectLabel, amount], index) => {
-        const code = subjectLabel.startsWith("6601") ? "6601" : "6602";
-        const subjectItem = subjects.find(
-          (x) => x.accountSetId === accountSetId && x.code === code,
-        )!;
-        return {
-          id: `${remark}-${index}`,
-          voucherId: "",
-          summary: "计提固定资产折旧",
-          subjectId: subjectItem.id,
-          subjectCode: subjectItem.code,
-          subjectName: `${subjectItem.name}-折旧`,
-          debitAmount: amount,
-          creditAmount: 0,
-          assistAccountings: {},
-          currencyId: `${accountSetId}-CNY`,
-          exchangeRate: 1,
-        };
-      },
-    );
-    const total = details.reduce((sum, x) => sum + x.debitAmount, 0);
+    const details = [...groups.entries()].map(([code, amount], index) => {
+      const subjectItem = subjects.find(
+        (x) => x.accountSetId === accountSetId && x.code === code,
+      )!;
+      return {
+        id: `${remark}-${index}`,
+        voucherId: "",
+        summary: "计提固定资产折旧",
+        subjectId: subjectItem.id,
+        subjectCode: subjectItem.code,
+        subjectName: `${subjectItem.name}-折旧`,
+        debitAmount: amount,
+        creditAmount: 0,
+        assistAccountings: {},
+        currencyId: `${accountSetId}-CNY`,
+        exchangeRate: 1,
+      };
+    });
+    const total = round2(details.reduce((sum, x) => sum + x.debitAmount, 0));
     if (!total) throw new Error("本期没有可计提的折旧");
     const saved = await voucher.save({
       accountSetId,
@@ -689,7 +932,7 @@ export const asset = {
           subjectCode: depreciation.code,
           subjectName: depreciation.name,
           debitAmount: 0,
-          creditAmount: total,
+          creditAmount: details.reduce((sum, x) => sum + x.debitAmount, 0),
           assistAccountings: {},
           currencyId: `${accountSetId}-CNY`,
           exchangeRate: 1,

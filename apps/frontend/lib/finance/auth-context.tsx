@@ -35,7 +35,9 @@ const initialPeriod = {
 const FinAppContext = createContext<FinAppContextValue | null>(null);
 
 export function FinAppProvider({ children }: { children: React.ReactNode }) {
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(() =>
+    typeof window === "undefined" ? false : !localStorage.getItem(storageKey),
+  );
   const [token, setToken] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [accountSets, setAccountSets] = useState<UserAccountSet[]>([]);

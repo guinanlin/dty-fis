@@ -168,7 +168,10 @@ export function FinanceShell({ children }: { children: React.ReactNode }) {
   if (!ready)
     return (
       <div className="grid min-h-screen place-items-center text-slate-500">
-        正在加载汤圆财税...
+        <div className="flex items-center gap-3">
+          <span className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-sky-500" />
+          <span>正在加载汤圆财税...</span>
+        </div>
       </div>
     );
   if (!token || !currentAccountSet) return null;

@@ -4,12 +4,24 @@ import { Button } from "@/components/ui/button";
 import { useFinApp } from "@/lib/finance/auth-context";
 import { asset } from "@/lib/finance/service";
 import type { AssetCard, AssetChangeRecord } from "@/lib/finance/types";
+import DepreciationVouchersPage from "@/components/finance/DepreciationVouchersPage";
+import DepreciationDetailPage from "@/components/finance/DepreciationDetailPage";
+import DepreciationSummaryPage from "@/components/finance/DepreciationSummaryPage";
+import AssetCategoriesPage from "@/components/finance/AssetCategoriesPage";
 
 export default function AssetPage({
   mode,
 }: {
   mode: "cards" | "vouchers" | "detail" | "summary" | "changes" | "categories";
 }) {
+  if (mode === "vouchers") return <DepreciationVouchersPage />;
+  if (mode === "detail") return <DepreciationDetailPage />;
+  if (mode === "summary") return <DepreciationSummaryPage />;
+  if (mode === "categories") return <AssetCategoriesPage />;
+  return <AssetCardsView mode={mode} />;
+}
+
+function AssetCardsView({ mode }: { mode: "cards" | "changes" }) {
   const { currentAccountSet, currentPeriod } = useFinApp();
   const [rows, setRows] = useState<Array<AssetCard | AssetChangeRecord>>([]);
   const [message, setMessage] = useState("");

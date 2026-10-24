@@ -57,6 +57,52 @@ export interface AssetChangeRecord {
   changedAt: string;
 }
 
+export interface DepreciationDetailRow {
+  id: string;
+  code: string;
+  name: string;
+  categoryCode: string;
+  categoryName: string;
+  department: string;
+  originalValue: number;
+  openingAccumulatedDepreciation: number;
+  currentDepreciation: number;
+  yearDepreciation: number;
+  endingAccumulatedDepreciation: number;
+  impairmentProvision: number;
+  netValue: number;
+  status: AssetCard["status"];
+  changeInfo?: string;
+}
+
+export interface DepreciationSummaryRow {
+  categoryCode: string;
+  categoryName: string;
+  openingOriginalValue: number;
+  addedOriginalValue: number;
+  decreasedOriginalValue: number;
+  endingOriginalValue: number;
+  openingAccumulatedDepreciation: number;
+  currentDepreciation: number;
+  endingAccumulatedDepreciation: number;
+  openingNetValue: number;
+  endingNetValue: number;
+}
+
+export interface DepreciationVoucherItem {
+  id: string;
+  word: string;
+  number: number;
+  voucherWordLabel: string;
+  year: number;
+  month: number;
+  date: string;
+  summary: string;
+  debitTotal: number;
+  creditTotal: number;
+  status: VoucherStatus;
+}
+
 export interface User {
   id: string;
   username: string;
