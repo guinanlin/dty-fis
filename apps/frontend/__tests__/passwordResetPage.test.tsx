@@ -1,1 +1,10 @@
-describe("password recovery request page", () => { it("accepts account, email or phone as the recovery identifier", () => expect(["account", "email", "phone"]).toContain("account")); });
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import "@testing-library/jest-dom";
+import Page from "@/app/password-recovery/page";
+import { forgotPassword } from "@/components/actions/auth-action";
+jest.mock("../components/actions/auth-action", () => ({ forgotPassword: jest.fn() }));
+describe("Password Recovery Page", () => { beforeEach(() => jest.clearAllMocks());
+  it("renders account input", () => { render(<Page />); expect(screen.getByPlaceholderText("账号 / 邮箱 / 手机号")).toBeInTheDocument(); expect(screen.getByRole("button", { name: "发送重置链接" })).toBeInTheDocument(); });
+  it("requests reset link and displays development link", async () => { (forgotPassword as jest.Mock).mockResolvedValue({ message: "已发送", resetToken: "token" }); render(<Page />); fireEvent.change(screen.getByPlaceholderText("账号 / 邮箱 / 手机号"), { target: { value: "admin" } }); fireEvent.click(screen.getByRole("button", { name: "发送重置链接" })); await waitFor(() => expect(screen.getByText("已发送")).toBeInTheDocument()); expect(forgotPassword).toHaveBeenCalledWith("admin"); await waitFor(() => expect(screen.getByText(/password-recovery\/confirm\?token=token/)).toBeInTheDocument()); });
+  it("displays anti-enumeration message", async () => { (forgotPassword as jest.Mock).mockResolvedValue({ message: "如果该账号存在，重置链接已发送到您的邮箱" }); render(<Page />); fireEvent.change(screen.getByPlaceholderText("账号 / 邮箱 / 手机号"), { target: { value: "missing" } }); fireEvent.click(screen.getByRole("button", { name: "发送重置链接" })); await waitFor(() => expect(screen.getByText(/如果该账号存在/)).toBeInTheDocument()); });
+});

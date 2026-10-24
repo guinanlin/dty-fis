@@ -1,2 +1,12 @@
-import { getErrorMessage } from "@/lib/utils";
-describe("login auth contract", () => { it("maps bad credentials to Chinese", () => expect(getErrorMessage({ detail: "LOGIN_BAD_CREDENTIALS" })).toBe("账号或密码错误")); it("keeps backend reasons", () => expect(getErrorMessage({ detail: { code: "INVALID_PASSWORD", reason: "密码长度不能少于 6 位" } })).toBe("密码长度不能少于 6 位")); });
+import { login } from "@/components/actions/auth-action";
+import { authJwtLogin, usersCurrentUser } from "../app/clientService";
+import { cookies } from "next/headers";
+jest.mock("../app/clientService", () => ({ authJwtLogin: jest.fn(), usersCurrentUser: jest.fn() }));
+const set = jest.fn(); const del = jest.fn();
+jest.mock("next/headers", () => ({ cookies: jest.fn(async () => ({ set, delete: del, get: jest.fn() })) }));
+describe("login action", () => { beforeEach(() => jest.clearAllMocks());
+  it("logs in, sets secure cookie, and loads the backend user", async () => { (authJwtLogin as jest.Mock).mockResolvedValue({ data: { access_token: "token" } }); (usersCurrentUser as jest.Mock).mockResolvedValue({ data: { id: "u1", username: "admin" } }); const result = await login("admin", "123456"); expect(authJwtLogin).toHaveBeenCalledWith({ body: { username: "admin", password: "123456" } }); expect(set).toHaveBeenCalledWith("accessToken", "token", expect.objectContaining({ httpOnly: true, path: "/", maxAge: 604800 })); expect(usersCurrentUser).toHaveBeenCalledWith({ headers: { Authorization: "Bearer token" } }); expect(result).toEqual({ ok: true, user: { id: "u1", username: "admin" } }); });
+  it("maps bad credentials to Chinese", async () => { (authJwtLogin as jest.Mock).mockResolvedValue({ error: { detail: "LOGIN_BAD_CREDENTIALS" } }); await expect(login("admin", "bad")).resolves.toEqual({ ok: false, error: "账号或密码错误" }); expect(usersCurrentUser).not.toHaveBeenCalled(); });
+  it("maps network errors to a user-facing error", async () => { (authJwtLogin as jest.Mock).mockRejectedValue(new Error("Network error")); await expect(login("admin", "bad")).resolves.toEqual({ ok: false, error: "Network error" }); });
+  it("does not authenticate without valid credentials", async () => { (authJwtLogin as jest.Mock).mockResolvedValue({ error: { detail: "LOGIN_BAD_CREDENTIALS" } }); const result = await login("", ""); expect(result.ok).toBe(false); expect(usersCurrentUser).not.toHaveBeenCalled(); });
+});

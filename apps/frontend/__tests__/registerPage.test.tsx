@@ -1,2 +1,14 @@
-import { registerSchema } from "@/lib/definitions";
-describe("register page contract", () => { it("validates username, phone and confirmation", () => expect(registerSchema.safeParse({ username: "alice", phone: "13800000000", email: "a@example.com", password: "Password1!", confirm: "Password1!" }).success).toBe(true)); });
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import "@testing-library/jest-dom";
+import Page from "@/app/register/page";
+import { register } from "@/components/actions/auth-action";
+const push = jest.fn();
+jest.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+jest.mock("../components/actions/auth-action", () => ({ register: jest.fn() }));
+const fill = () => { fireEvent.change(screen.getByPlaceholderText("用户名"), { target: { value: "alice" } }); fireEvent.change(screen.getByPlaceholderText("手机号"), { target: { value: "13800000000" } }); fireEvent.change(screen.getByPlaceholderText("邮箱"), { target: { value: "a@example.com" } }); fireEvent.change(screen.getByPlaceholderText("密码（至少8位，含大写和特殊字符）"), { target: { value: "Password1!" } }); fireEvent.change(screen.getByPlaceholderText("确认密码"), { target: { value: "Password1!" } }); };
+describe("Register Page", () => { beforeEach(() => { jest.clearAllMocks(); });
+  it("renders the real backend fields", () => { render(<Page />); expect(screen.getByPlaceholderText("用户名")).toBeInTheDocument(); expect(screen.getByPlaceholderText("手机号")).toBeInTheDocument(); expect(screen.getByPlaceholderText("邮箱")).toBeInTheDocument(); expect(screen.getByRole("button", { name: "注册" })).toBeInTheDocument(); });
+  it("submits username phone email and password", async () => { (register as jest.Mock).mockResolvedValue({ ok: true }); render(<Page />); fill(); fireEvent.click(screen.getByRole("button", { name: "注册" })); await waitFor(() => expect(register).toHaveBeenCalledWith({ username: "alice", phone: "13800000000", email: "a@example.com", password: "Password1!" })); });
+  it("shows backend errors", async () => { (register as jest.Mock).mockResolvedValue({ ok: false, error: "该用户名已被注册" }); render(<Page />); fill(); fireEvent.click(screen.getByRole("button", { name: "注册" })); await waitFor(() => expect(screen.getByText("该用户名已被注册")).toBeInTheDocument()); });
+  it("shows client validation errors", async () => { render(<Page />); fill(); fireEvent.change(screen.getByPlaceholderText("用户名"), { target: { value: "a" } }); fireEvent.click(screen.getByRole("button", { name: "注册" })); await waitFor(() => expect(screen.getByText("用户名至少 2 个字符")).toBeInTheDocument()); expect(register).not.toHaveBeenCalled(); });
+});

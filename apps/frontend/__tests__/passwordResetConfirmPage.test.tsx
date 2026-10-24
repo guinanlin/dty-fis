@@ -1,1 +1,13 @@
-describe("password recovery confirm page", () => { it("requires a token before reset", () => expect("链接无效").toBe("链接无效")); });
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import "@testing-library/jest-dom";
+import Page from "@/app/password-recovery/confirm/page";
+import { resetPassword } from "@/components/actions/auth-action";
+const push = jest.fn(); const params = { token: "token" };
+jest.mock("next/navigation", () => ({ useSearchParams: () => ({ get: (key: string) => key === "token" ? params.token : null }), useRouter: () => ({ push }) }));
+jest.mock("../components/actions/auth-action", () => ({ resetPassword: jest.fn() }));
+describe("Password Recovery Confirm Page", () => { beforeEach(() => { jest.clearAllMocks(); params.token = "token"; });
+  it("renders password fields with token", () => { render(<Page />); expect(screen.getByPlaceholderText("新密码")).toBeInTheDocument(); expect(screen.getByPlaceholderText("确认密码")).toBeInTheDocument(); });
+  it("resets password and redirects", async () => { (resetPassword as jest.Mock).mockResolvedValue({ ok: true }); render(<Page />); fireEvent.change(screen.getByPlaceholderText("新密码"), { target: { value: "Password1!" } }); fireEvent.change(screen.getByPlaceholderText("确认密码"), { target: { value: "Password1!" } }); fireEvent.click(screen.getByRole("button", { name: "确认重置" })); await waitFor(() => expect(resetPassword).toHaveBeenCalledWith({ token: "token", password: "Password1!" })); expect(push).toHaveBeenCalledWith("/login"); });
+  it("shows reset error", async () => { (resetPassword as jest.Mock).mockResolvedValue({ ok: false, error: "重置链接无效或已过期" }); render(<Page />); fireEvent.change(screen.getByPlaceholderText("新密码"), { target: { value: "Password1!" } }); fireEvent.change(screen.getByPlaceholderText("确认密码"), { target: { value: "Password1!" } }); fireEvent.click(screen.getByRole("button", { name: "确认重置" })); await waitFor(() => expect(screen.getByText("重置链接无效或已过期")).toBeInTheDocument()); });
+  it("shows invalid link when token is missing", () => { params.token = ""; render(<Page />); expect(screen.getByText("链接无效")).toBeInTheDocument(); expect(screen.getByRole("button", { name: "确认重置" })).toBeDisabled(); });
+});
