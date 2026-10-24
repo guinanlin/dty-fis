@@ -1,4 +1,98 @@
 "use client";
-import { useEffect,useState } from "react";import { Button } from "@/components/ui/button";import { useFinApp } from "@/lib/finance/auth-context";import { permissionService } from "@/lib/finance/service";import type { AccountSetUser,Role } from "@/lib/finance/types";
-const roles:{value:Role;label:string;desc:string}[]=[{value:"Manager",label:"账套管理员",desc:"管理账套、权限及全部业务"},{value:"Making",label:"制单人",desc:"录入凭证并查看账簿报表"},{value:"View",label:"查看",desc:"仅可查看业务数据"}];
-export default function PermissionPage(){const {currentAccountSet}=useFinApp();const [rows,setRows]=useState<AccountSetUser[]>([]);const [draft,setDraft]=useState<Record<string,Role>>({});const [message,setMessage]=useState("");useEffect(()=>{if(currentAccountSet)permissionService.list(currentAccountSet.id).then((items)=>{setRows(items);setDraft(Object.fromEntries(items.map((item)=>[item.user.id,item.role])))})},[currentAccountSet]);return <div className="space-y-5"><div className="flex justify-between"><div><h1 className="text-2xl font-semibold">权限设置</h1><p className="mt-1 text-sm text-slate-500">配置当前账套成员角色</p></div><Button onClick={async()=>{if(!currentAccountSet)return;await Promise.all(Object.entries(draft).map(([userId,role])=>permissionService.updateRole(currentAccountSet.id,userId,role)));setMessage("权限保存成功")}}>保存权限</Button></div>{message&&<p className="rounded bg-emerald-50 p-3 text-sm text-emerald-700">{message}</p>}<div className="overflow-x-auto rounded-xl border bg-white"><table className="w-full min-w-[560px] text-sm"><thead className="bg-slate-50"><tr><th className="p-3 text-left">用户</th>{roles.map((role)=><th key={role.value} className="p-3 text-center"><p>{role.label}</p><p className="mt-1 text-xs font-normal text-slate-400">{role.desc}</p></th>)}</tr></thead><tbody>{rows.map(({user})=><tr key={user.id}><td className="border-t p-4"><b>{user.realName}</b><p className="text-xs text-slate-500">{user.mobile}</p></td>{roles.map((role)=><td key={role.value} className="border-t p-4 text-center"><input type="radio" name={`role-${user.id}`} checked={draft[user.id]===role.value} onChange={()=>setDraft({...draft,[user.id]:role.value})}/></td>)}</tr>)}</tbody></table></div></div>}
+
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/finance/PageHeader";
+import { useFinApp } from "@/lib/finance/auth-context";
+import { permissionService } from "@/lib/finance/service";
+import type { AccountSetUser, Role } from "@/lib/finance/types";
+
+const roles: { value: Role; label: string; desc: string }[] = [
+  { value: "Manager", label: "账套管理员", desc: "管理账套、权限及全部业务" },
+  { value: "Making", label: "制单人", desc: "录入凭证并查看账簿报表" },
+  { value: "View", label: "查看", desc: "仅可查看业务数据" },
+];
+
+export default function PermissionPage() {
+  const { currentAccountSet } = useFinApp();
+  const [rows, setRows] = useState<AccountSetUser[]>([]);
+  const [draft, setDraft] = useState<Record<string, Role>>({});
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (currentAccountSet) {
+      permissionService.list(currentAccountSet.id).then((items) => {
+        setRows(items);
+        setDraft(
+          Object.fromEntries(items.map((item) => [item.user.id, item.role])),
+        );
+      });
+    }
+  }, [currentAccountSet]);
+
+  const handleRoleChange = (userId: string, role: Role) => {
+    setDraft({ ...draft, [userId]: role });
+  };
+
+  const handleSave = async () => {
+    if (!currentAccountSet) return;
+    await Promise.all(
+      Object.entries(draft).map(([userId, role]) =>
+        permissionService.updateRole(currentAccountSet.id, userId, role),
+      ),
+    );
+    setMessage("权限保存成功");
+  };
+
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        title="权限设置"
+        subtitle="配置当前账套成员角色"
+        actions={<Button onClick={handleSave}>保存权限</Button>}
+      />
+      {message && (
+        <p className="rounded bg-emerald-50 p-3 text-sm text-emerald-700">
+          {message}
+        </p>
+      )}
+      <div className="overflow-x-auto rounded-xl border bg-white">
+        <table className="w-full min-w-[560px] text-sm">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="p-3 text-left">用户</th>
+              {roles.map((role) => (
+                <th key={role.value} className="p-3 text-center">
+                  <p>{role.label}</p>
+                  <p className="mt-1 text-xs font-normal text-slate-400">
+                    {role.desc}
+                  </p>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ user }) => (
+              <tr key={user.id}>
+                <td className="border-t p-4">
+                  <b>{user.realName}</b>
+                  <p className="text-xs text-slate-500">{user.mobile}</p>
+                </td>
+                {roles.map((role) => (
+                  <td key={role.value} className="border-t p-4 text-center">
+                    <input
+                      type="radio"
+                      name={`role-${user.id}`}
+                      checked={draft[user.id] === role.value}
+                      onChange={() => handleRoleChange(user.id, role.value)}
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
