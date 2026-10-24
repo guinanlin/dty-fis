@@ -162,6 +162,7 @@ export default function AssetCardNewPage() {
     try {
       await asset.cards.create({
         ...values,
+        code: form.assetCode,
         accountSetId: currentAccountSet.id,
         fixedAssetSubjectCode: subjects.find(
           (x) => x.id === form.fixedAssetSubjectCode,
