@@ -402,10 +402,14 @@ export default function AssetCardNewPage() {
         >
           保存并复制
         </Button>
-        <Button variant="outline" disabled={busy} onClick={() => submit("new")}>
+        <Button disabled={busy} onClick={() => submit("new")}>
           保存并新增
         </Button>
-        <Button disabled={busy} onClick={() => submit("save")}>
+        <Button
+          variant="outline"
+          disabled={busy}
+          onClick={() => submit("save")}
+        >
           {busy ? "保存中..." : "保存"}
         </Button>
       </div>
