@@ -17,6 +17,7 @@ import type {
   VoucherWord,
   Invoice,
   InvoiceTemplate,
+  AssetCategory, AssetCard, AssetChangeRecord,
 } from "./types";
 
 const now = new Date();
@@ -33,6 +34,11 @@ export const accountSets: AccountSet[] = [
   { id: "a2", companyName: "上海澜海贸易有限公司", creditCode: "91310100MA2FXY002", accountingStandards: "小企业会计准则", industry: "贸易·批发·零售·租赁业", vatType: "一般纳税人", address: "上海市浦东新区", enableDate: "2025-01-01", currentPeriod, encoding: "4-2-2-2", voucherReviewed: true, creatorId: "u1" },
   { id: "a3", companyName: "深圳星辰网络科技有限公司", creditCode: "91440300MA2FXY003", accountingStandards: "企业会计准则", industry: "IT·通信·电子·互联网", vatType: "一般纳税人", address: "广东省深圳市", enableDate: "2025-06-01", currentPeriod, encoding: "4-2-2-2", voucherReviewed: false, creatorId: "u2" },
 ];
+
+export const assetCategories: AssetCategory[] = accountSets.flatMap((a) => ["房屋建筑物", "机器机械生产设备", "器具工具家具", "运输工具", "电子设备", "其他固定资产"].map((name, i) => ({ id: `${a.id}-asset-cat-${i + 1}`, accountSetId: a.id, code: `00${i + 1}`, name, depreciationMethod: "average" as const, usefulLifeMonths: [240, 120, 60, 48, 36, 60][i], residualRate: 5, fixedAssetSubjectCode: "1601", accumulatedDepreciationSubjectCode: "1602" })));
+const assetSpecs = [["001", "拖车", "004", "运输部", "2021-10-01", 20000, 9104.09, 395.83, 48], ["002", "货车", "004", "运输部", "2022-01-01", 100000, 0, 1979.17, 48], ["003", "办公桌", "003", "仓储部", "2023-01-01", 3000, 0, 50, 60], ["004", "电脑", "005", "财务部", "2023-01-01", 4000, 0, 105.56, 36], ["005", "拖车", "004", "运输部", "2023-02-01", 20000, 0, 395.83, 48], ["006", "拖车", "004", "运输部", "2023-03-01", 20000, 0, 395.83, 48], ["007", "拖车", "004", "运输部", "2023-04-01", 20000, 0, 395.83, 48], ["008", "办公桌", "003", "仓储部", "2023-01-01", 6000, 0, 100, 60]] as const;
+export const assetCards: AssetCard[] = accountSets.flatMap((a) => assetSpecs.map(([code, name, categoryCode, department, startUseDate, originalValue, openingAccumulatedDepreciation, monthlyDepreciation, usefulLifeMonths]) => ({ id: `${a.id}-asset-${code}`, accountSetId: a.id, code, name, categoryCode, department, startUseDate, entryPeriod: `${currentPeriod.year}-${String(currentPeriod.month).padStart(2, "0")}`, originalValue, openingAccumulatedDepreciation, endingAccumulatedDepreciation: openingAccumulatedDepreciation, monthlyDepreciation, usefulLifeMonths, depreciatedMonths: Math.floor(openingAccumulatedDepreciation / monthlyDepreciation), residualValue: originalValue * .05, impairmentProvision: 0, netValue: originalValue - openingAccumulatedDepreciation, depreciationExpenseSubject: "6602 管理费用-折旧", status: "使用中", acquisitionMethod: "购入", location: "杭州仓库" })));
+export const assetChanges: AssetChangeRecord[] = assetCards.filter((a) => a.accountSetId === "a1").slice(0, 3).map((a, i) => ({ id: `${a.id}-change-${i}`, accountSetId: a.accountSetId, assetCode: a.code, assetName: a.name, changeItem: "原值调整", beforeValue: String(a.originalValue), afterValue: String(a.originalValue), period: `${currentPeriod.year}-${String(currentPeriod.month).padStart(2, "0")}`, modifier: "管理员", changedAt: new Date().toISOString() }));
 
 export const permissions: Permission[] = [
   { userId: "u1", accountSetId: "a1", role: "Manager" }, { userId: "u1", accountSetId: "a2", role: "Manager" },

@@ -16,6 +16,7 @@ import {
   voucherWords,
   invoices,
   invoiceTemplates,
+  assetCategories, assetCards, assetChanges,
 } from "./seed";
 import type {
   AccountSet,
@@ -45,6 +46,7 @@ import type {
   InvoiceTemplate,
   TaxBurdenInput,
   TaxBurdenResult,
+  AssetCategory, AssetCard, AssetChangeRecord,
 } from "./types";
 
 const wait = <T>(value: T, delay = 140) => new Promise<T>((resolve) => setTimeout(() => resolve(value), delay));
@@ -149,6 +151,16 @@ export const voucher = {
   copy: async (id: string) => { const source = vouchers.find((item) => item.id === id); if (!source) throw new Error("凭证不存在"); return voucher.save({ ...source, id: undefined, number: undefined, status: "draft", auditedBy: undefined, date: new Date().toISOString().slice(0, 10), details: source.details.map((item) => ({ ...item, id: undefined, voucherId: undefined })) }); },
   dataUsageCount: (subjectId: string) => wait(vouchers.flatMap((item) => item.details).filter((item) => item.subjectId === subjectId).length),
   carryForward: (accountSetId: string, year: number, month: number) => wait(vouchers.filter((item) => item.accountSetId === accountSetId && item.year === year && item.month === month && item.sourceType === "carry-forward")),
+};
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+export const asset = {
+  categories: { list: (accountSetId: string) => wait(assetCategories.filter((x) => x.accountSetId === accountSetId)), save: (x: AssetCategory) => wait(upsert(assetCategories, x)), delete: async (id: string) => { if (assetCards.some((x) => x.categoryCode === assetCategories.find((c) => c.id === id)?.code)) throw new Error("该类别已被资产卡片引用，不能删除"); const i = assetCategories.findIndex((x) => x.id === id); if (i >= 0) assetCategories.splice(i, 1); return wait(i >= 0); } },
+  cards: { list: (accountSetId: string, filters: { categoryCode?: string; department?: string; keyword?: string; includeCleared?: boolean } = {}) => wait(assetCards.filter((x) => x.accountSetId === accountSetId && (!filters.categoryCode || x.categoryCode === filters.categoryCode) && (!filters.department || x.department === filters.department) && (filters.includeCleared || x.status !== "已清理") && (!filters.keyword || `${x.code} ${x.name}`.includes(filters.keyword)))), save: async (x: AssetCard, modifier = "管理员") => { const old = assetCards.find((y) => y.id === x.id); if (old) (["originalValue", "department", "categoryCode", "usefulLifeMonths", "openingAccumulatedDepreciation"] as const).forEach((key) => { if (old[key] !== x[key]) assetChanges.push({ id: createId("asset-change"), accountSetId: x.accountSetId, assetCode: x.code, assetName: x.name, changeItem: key, beforeValue: String(old[key]), afterValue: String(x[key]), period: x.entryPeriod, modifier, changedAt: new Date().toISOString() }); }); x.residualValue = round2(x.originalValue * .05); x.monthlyDepreciation = round2(x.originalValue * .95 / x.usefulLifeMonths); x.netValue = round2(x.originalValue - x.endingAccumulatedDepreciation - x.impairmentProvision); return wait(upsert(assetCards, x)); }, delete: async (id: string) => { const x = assetCards.find((y) => y.id === id); if (x && x.endingAccumulatedDepreciation > 0) throw new Error("已计提折旧的资产不能删除"); const i = assetCards.findIndex((y) => y.id === id); if (i >= 0) assetCards.splice(i, 1); return wait(i >= 0); }, clear: async (id: string) => { const x = assetCards.find((y) => y.id === id); if (!x) throw new Error("资产不存在"); x.status = "已清理"; assetChanges.push({ id: createId("asset-change"), accountSetId: x.accountSetId, assetCode: x.code, assetName: x.name, changeItem: "清理", beforeValue: "使用中", afterValue: "已清理", period: x.entryPeriod, modifier: "管理员", changedAt: new Date().toISOString() }); return wait(x); } },
+  changes: { list: (accountSetId: string) => wait(assetChanges.filter((x) => x.accountSetId === accountSetId)) },
+  calculateMonthlyDepreciation: (originalValue: number, usefulLifeMonths: number, residualRate = 5) => round2(originalValue * (1 - residualRate / 100) / usefulLifeMonths),
+  periodDepreciation: (x: AssetCard, year: number, month: number) => { if (x.status === "已清理" || x.endingAccumulatedDepreciation >= x.originalValue - x.residualValue || `${year}-${String(month).padStart(2, "0")}` <= x.startUseDate.slice(0, 7)) return 0; return round2(Math.min(x.monthlyDepreciation, x.originalValue - x.residualValue - x.endingAccumulatedDepreciation)); },
+  report: async (accountSetId: string, year: number, month: number) => (await asset.cards.list(accountSetId, { includeCleared: true })).map((x) => { const current = asset.periodDepreciation(x, year, month); return { ...x, currentDepreciation: current, endingAccumulatedDepreciation: round2(x.endingAccumulatedDepreciation + current), netValue: round2(x.originalValue - x.endingAccumulatedDepreciation - current - x.impairmentProvision) }; }),
 };
 
 function crudService<T extends { id: string; accountSetId: string }>(items: T[]) {

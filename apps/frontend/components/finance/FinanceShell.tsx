@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bell, BookOpen, ChevronDown, ChevronRight, FileBarChart, FileText, Home, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Settings, WalletCards, X, ReceiptText } from "lucide-react";
+import { Bell, BookOpen, ChevronDown, ChevronRight, FileBarChart, FileText, Home, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Settings, WalletCards, X, ReceiptText, Building2 } from "lucide-react";
 import { useFinApp } from "@/lib/finance/auth-context";
 import { resolveActiveMenu, type FinanceMenuItem } from "@/components/finance/active-menu";
 
@@ -13,6 +13,7 @@ const menus = [
   { title: "帐薄", icon: BookOpen, children: [{ title: "明细账", href: "/account-book/detailed" }, { title: "总账", href: "/account-book/general-ledger" }, { title: "科目余额", href: "/account-book/subject-balance" }, { title: "科目汇总", href: "/account-book/subject-summary" }, { title: "核算项目明细账", href: "/account-book/auxiliary-accounting-detail" }, { title: "核算项目余额", href: "/account-book/auxiliary-accounting-balance" }] },
   { title: "报表", href: "/report", icon: FileBarChart },
   { title: "发票", icon: ReceiptText, children: [{ title: "发票管理", href: "/invoice" }, { title: "发票凭证模板", href: "/invoice/templates" }, { title: "税负测算", href: "/invoice/tax-burden" }] },
+  { title: "资产", icon: Building2, children: [{ title: "资产卡片", href: "/asset/cards" }, { title: "折旧凭证", href: "/asset/vouchers" }, { title: "折旧明细表", href: "/asset/depreciation-detail" }, { title: "折旧汇总表", href: "/asset/depreciation-summary" }, { title: "资产变动记录", href: "/asset/changes" }, { title: "资产类别", href: "/asset/categories" }] },
   { title: "结账", href: "/check-out/list", match: "/check-out/", icon: WalletCards },
   { title: "设置", icon: Settings, children: [{ title: "账套", href: "/account" }, { title: "科目", href: "/subject" }, { title: "期初", href: "/initial" }, { title: "币别", href: "/currency" }, { title: "凭证字", href: "/voucher-word" }, { title: "辅助核算", href: "/assisting-accounting/accounting-category", match: "/assisting-accounting/" }, { title: "权限设置", href: "/permission-setting" }] },
 ] satisfies FinanceMenuItem[];

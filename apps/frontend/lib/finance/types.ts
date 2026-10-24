@@ -3,6 +3,11 @@ export type BalanceDirection = "借" | "贷";
 export type VoucherStatus = "draft" | "audited" | "posted" | "void";
 export type CheckStatus = "open" | "closed";
 
+export type AssetDepreciationMethod = "average" | "workload" | "double-declining" | "sum-of-years";
+export interface AssetCategory { id: string; accountSetId: string; code: string; name: string; depreciationMethod: AssetDepreciationMethod; usefulLifeMonths: number; residualRate: number; fixedAssetSubjectCode: string; accumulatedDepreciationSubjectCode: string; remark?: string; }
+export interface AssetCard { id: string; accountSetId: string; code: string; name: string; categoryCode: string; department: string; startUseDate: string; entryPeriod: string; originalValue: number; openingAccumulatedDepreciation: number; endingAccumulatedDepreciation: number; monthlyDepreciation: number; usefulLifeMonths: number; depreciatedMonths: number; residualValue: number; impairmentProvision: number; netValue: number; depreciationExpenseSubject: string; status: "使用中" | "已清理"; acquisitionMethod: "购入" | "自建" | "投资投入" | "盘盈"; location: string; remark?: string; }
+export interface AssetChangeRecord { id: string; accountSetId: string; assetCode: string; assetName: string; changeItem: string; beforeValue: string; afterValue: string; period: string; modifier: string; changedAt: string; }
+
 export interface User {
   id: string;
   username: string;
