@@ -23,6 +23,7 @@ const config: Config = {
 
   // Automatically clear mock calls, instances, contexts and results before every test
   clearMocks: true,
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
 
   // Indicates whether the coverage information should be collected while executing the test
   // collectCoverage: false,
